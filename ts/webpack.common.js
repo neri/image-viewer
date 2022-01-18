@@ -5,10 +5,19 @@ module.exports = {
     module: {
         rules: [
             { test: /\.ts$/, loader: 'ts-loader' },
+            { test: /\.html$/, loader: 'html-loader' },
+            { test: /\.wasm$/, type: 'webassembly/async' },
             {
-                test: /\.wasm$/,
-                type: "webassembly/async"
-            }]
+                test: /\.css/,
+                use: [
+                    "style-loader",
+                    {
+                        loader: "css-loader",
+                        options: { url: false }
+                    }
+                ]
+            },
+        ]
     },
     output: {
         clean: true,
@@ -27,5 +36,8 @@ module.exports = {
                 }
             }
         }),
-        new HtmlWebpackPlugin()],
+        new HtmlWebpackPlugin({
+            template: "./src/index.html"
+        }),
+    ],
 }

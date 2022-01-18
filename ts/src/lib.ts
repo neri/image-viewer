@@ -11,21 +11,21 @@ export class ImageLib {
         memory.set(bytes, base);
         return wasm.decode() != 0;
     }
-    decoded_width(): number {
-        return wasm.decoded_width();
+    image_width(): number {
+        return wasm.image_width();
     }
-    decoded_height(): number {
-        return wasm.decoded_height();
+    image_height(): number {
+        return wasm.image_height();
     }
-    decoded_image_has_alpha(): boolean {
-        return wasm.decoded_image_has_alpha() != 0;
+    image_has_alpha(): boolean {
+        return wasm.image_has_alpha() != 0;
     }
-    decoded_buffer(): Uint8Array {
-        const base = wasm.output_buffer_get_base();
+    image_buffer(): Uint8Array {
+        const base = wasm.image_buffer_get_base();
         const memory = new Uint8Array(wasm.memory.buffer);
         return memory.slice(
             base,
-            base + wasm.output_buffer_get_size()
+            base + wasm.image_buffer_get_size()
         );
     }
 }

@@ -1,0 +1,85 @@
+html {
+    background: #F5F5F5;
+    color: #757575;
+    font: 10pt "ヒラギノ丸ゴ Pro", "ヒラギノ丸ゴ Pro W4", "HiraMaruPro-W4", "HiraKakuProN-W3", sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    -webkit-app-region: drag;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    width: 100%;
+    min-height: 32px;
+    background: linear-gradient(90deg, #009688, #2196F3);
+    color: #EEEEEE;
+    box-shadow: 1px 1px 4px 2px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+}
+
+.button,
+.buttonActive,
+.buttonDestructive {
+    display: inline-block;
+    margin: 4px 2px;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 10pt;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+}
+
+.button:hover,
+.buttonActive:hover,
+.buttonDestructive:hover {
+    box-shadow: 1px 1px 2px 2px rgba(0, 0, 0, 0.125);
+}
+
+.button {
+    background: #E0E0E0;
+    color: #424242;
+}
+
+.button[disabled] {
+    background: #EEE;
+    color: #AAA;
+    box-shadow: none;
+    cursor: default;
+}
+
+.buttonActive {
+    background: #2196F3;
+    color: #FFF;
+}
+
+.buttonDestructive {
+    background: #f44336;
+    color: #FFF;
+}
+
+#main {
+    margin-top: 36px;
+}
+
+#mainCanvasContainer {
+    margin: 0 4px;
+    /* width: 272px; */
+    max-width: 95%;
+    /* height: 272px; */
+    background: #FFF;
+    border: #9E9E9E solid 1px;
+    border-radius: 4px;
+}
+
+.blur {
+    filter: brightness(75%) blur(4px);
+}

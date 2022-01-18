@@ -1,6 +1,4 @@
-# image-viewer
-
-Online Image Viewer
+# Online Image Viewer
 
 ## Features
 
@@ -12,7 +10,7 @@ Online Image Viewer
 - QOI (via WebAssembly)
 - Formats natively supported by the browser's IMG tag, such as PNG (via JavaScrupt)
 
-## Future Features
+### Future Features
 
 - Export
 

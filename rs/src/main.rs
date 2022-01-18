@@ -8,17 +8,17 @@ use rapid_qoi::Qoi;
 extern crate alloc;
 
 static mut INPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
-static mut OUTPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
+static mut IMAGE_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut DECODED_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::new());
 
 #[inline]
-fn decoded_header<'a>() -> &'a ImageInfo {
+fn decoded_info<'a>() -> &'a ImageInfo {
     unsafe { &*DECODED_INFO.get() }
 }
 
 #[inline]
-fn output_buffer<'a>() -> &'a Vec<u8> {
-    unsafe { &*OUTPUT_BUFFER.get() }
+fn image_buffer<'a>() -> &'a Vec<u8> {
+    unsafe { &*IMAGE_BUFFER.get() }
 }
 
 #[no_mangle]
@@ -28,7 +28,7 @@ pub fn cleanup() {
         ib.set_len(0);
         ib.shrink_to_fit();
 
-        let ob = OUTPUT_BUFFER.get_mut();
+        let ob = IMAGE_BUFFER.get_mut();
         ob.set_len(0);
         ob.shrink_to_fit();
 
@@ -50,8 +50,8 @@ pub fn input_buffer_resize(new_len: usize) -> usize {
 }
 
 #[no_mangle]
-pub fn output_buffer_get_base() -> usize {
-    let ob = output_buffer();
+pub fn image_buffer_get_base() -> usize {
+    let ob = image_buffer();
     if ob.len() > 0 {
         unsafe { ob.get_unchecked(0) as *const _ as usize }
     } else {
@@ -60,8 +60,20 @@ pub fn output_buffer_get_base() -> usize {
 }
 
 #[no_mangle]
-pub fn output_buffer_get_size() -> usize {
-    output_buffer().len()
+pub fn image_buffer_get_size() -> usize {
+    image_buffer().len()
+}
+
+#[no_mangle]
+pub fn image_buffer_resize(new_len: usize) -> usize {
+    unsafe {
+        let ib = IMAGE_BUFFER.get_mut();
+        ib.resize(0, 0);
+        ib.reserve(new_len);
+        ib.set_len(new_len);
+
+        ib.get_unchecked(0) as *const _ as usize
+    }
 }
 
 #[no_mangle]
@@ -81,18 +93,18 @@ pub fn decode_header() -> bool {
 }
 
 #[no_mangle]
-pub fn decoded_width() -> isize {
-    decoded_header().width
+pub fn image_width() -> isize {
+    decoded_info().width
 }
 
 #[no_mangle]
-pub fn decoded_height() -> isize {
-    decoded_header().height
+pub fn image_height() -> isize {
+    decoded_info().height
 }
 
 #[no_mangle]
-pub fn decoded_image_has_alpha() -> isize {
-    decoded_header().has_slpha as isize
+pub fn image_has_alpha() -> isize {
+    decoded_info().has_slpha as isize
 }
 
 #[no_mangle]
@@ -105,7 +117,7 @@ pub fn decode() -> bool {
             di.height = qoi.height as isize;
             di.has_slpha = qoi.colors.has_alpha();
 
-            let ob = unsafe { OUTPUT_BUFFER.get_mut() };
+            let ob = unsafe { IMAGE_BUFFER.get_mut() };
             ob.resize(0, 0);
             if di.has_slpha {
                 ob.extend_from_slice(buffer.as_slice());
@@ -129,6 +141,16 @@ pub fn decode() -> bool {
         }
         Err(_) => false,
     }
+}
+
+#[no_mangle]
+pub fn encode(width: isize, height: isize, has_alpha: usize) -> usize {
+    let di = unsafe { DECODED_INFO.get_mut() };
+    di.width = width;
+    di.height = height;
+    di.has_slpha = has_alpha != 0;
+
+    0
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
