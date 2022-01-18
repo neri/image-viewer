@@ -10,6 +10,9 @@ module.exports = {
                 type: "webassembly/async"
             }]
     },
+    output: {
+        clean: true,
+    },
     experiments: {
         asyncWebAssembly: true,
     },

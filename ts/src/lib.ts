@@ -1,11 +1,14 @@
 import * as wasm from '../../rs/lib/libqoi';
 
+/**
+ * Wasm Image Library Wrapper
+ */
 export class ImageLib {
     decode(buffer: ArrayBuffer): boolean {
         const bytes = new Uint8Array(buffer);
-        const ib = wasm.input_buffer_resize(bytes.length);
+        const base = wasm.input_buffer_resize(bytes.length);
         const memory = new Uint8Array(wasm.memory.buffer);
-        memory.set(bytes, ib);
+        memory.set(bytes, base);
         return wasm.decode() != 0;
     }
     decoded_width(): number {
