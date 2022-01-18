@@ -1,0 +1,11 @@
+[workspace]
+members = [
+  "rs",
+  "tools/wasm-strip",
+]
+
+[profile.release]
+lto = true
+opt-level = "z"
+
+[profile.dev]
