@@ -6,8 +6,10 @@ const $ = (x: string) => document.querySelector(x);
 
 class App {
 
+    private imgLib: ImageLib;
+
     constructor() {
-        console.log('Hello, world')
+        this.imgLib = new ImageLib();
     }
 
     onload() {
@@ -19,17 +21,29 @@ class App {
         html.addEventListener('dragover', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            if (!this.isDraging) {
+                this.isDraging = true;
+                this.dim();
+            }
         }, false);
 
         html.addEventListener('dragleave', (e) => {
             e.stopPropagation();
             e.preventDefault();
+            if (this.isDraging) {
+                this.isDraging = false;
+                this.dim(-1);
+            }
         }, false);
 
         html.addEventListener('drop', (_e) => {
             const e = _e as DragEvent;
             e.stopPropagation();
             e.preventDefault();
+            if (this.isDraging) {
+                this.isDraging = false;
+                this.dim(-1);
+            }
 
             const reader = new FileReader();
             reader.addEventListener('load', (e) => {
@@ -50,33 +64,47 @@ class App {
             reader.readAsArrayBuffer(file);
         }, false);
 
-        const exportButton = $('#exportButton') as HTMLButtonElement | null;
-        if (exportButton !== null) {
-            exportButton.addEventListener('click', () => {
-                this.dim();
+        ($('#quickExportButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+            if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+                this.quickExport(canvas);
+            }
+        });
 
-                const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
-                if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
-                    const dataUrl = canvas.toDataURL('image/png');
-                    console.log('SAVE', canvas.width, canvas.height);
-                    // const a = document.createElement('a') as HTMLAnchorElement | null;
-                    // if (a !== null) {
-                    //     a.href = dataUrl;
-                    //     a.download = 'download.png';
-                    //     a.click();
-                    // }
-                }
-            });
-        }
+        document.querySelectorAll('.dialogCloseButton').forEach(button => {
+            button.addEventListener('click', () => {
+                Dialog.dismissTop()
+            })
+        });
+
+        ($('#menuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+            if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+                this.prepareToExportImage(canvas);
+                new SaveAsDialog().show();
+            }
+        });
+
+        ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+            if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+                this.exportImage(canvas);
+            }
+        });
+
+        ($('#saveQoiButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            this.exportEncoded();
+        });
     }
+
+    private isDraging = false;
 
     private dimCount = 0;
     dim(x = 1) {
         const tag = $('#main') as HTMLDivElement | null;
         if (tag === null) { return; }
 
-        // this.dimCount += x;
-        this.dimCount = 1 - this.dimCount;
+        this.dimCount += x;
 
         if (this.dimCount > 0) {
             tag.classList.add('blur');
@@ -96,7 +124,7 @@ class App {
         }
         const { width, height } = canvas;
         if (width > 0 && height > 0) {
-            infoText.innerHTML = `Dim ${width} x ${height}`;
+            infoText.innerHTML = `${width} x ${height}`;
         } else {
             infoText.innerHTML = '#ERROR';
         }
@@ -104,17 +132,16 @@ class App {
     }
 
     loadImage(canvas: HTMLCanvasElement, blob: ArrayBuffer) {
-        const lib = new ImageLib();
+        const lib = this.imgLib;
         if (lib.decode(blob)) {
-            const width = lib.image_width();
-            const height = lib.image_height();
-            console.log(`LOADED VIA WASM width: ${width} height: ${height} has_alpha: ${lib.image_has_alpha()}`);
+            const { width, height } = lib;
+            console.log(`LOADED VIA WASM width: ${width} height: ${height} has_alpha: ${lib.image_has_alpha}`);
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx !== null) {
                 const imageData = ctx.getImageData(0, 0, width, height);
-                imageData.data.set(lib.image_buffer());
+                imageData.data.set(lib.image_buffer);
                 ctx.putImageData(imageData, 0, 0);
             }
             this.updateInfo(canvas);
@@ -137,20 +164,138 @@ class App {
             });
         }
     }
+
+    quickExport(canvas: HTMLCanvasElement) {
+        this.prepareToExportImage(canvas);
+        this.exportEncoded();
+    }
+
+    prepareToExportImage(canvas: HTMLCanvasElement) {
+        const lib = this.imgLib;
+        const { width, height } = canvas;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) {
+            return;
+        }
+        const imgData = ctx.getImageData(0, 0, width, height);
+        lib.set_image_buffer(imgData.data, width, height);
+
+        const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
+        if (checkSaveAlpha !== null) {
+            checkSaveAlpha.checked = lib.image_has_alpha;
+        }
+    }
+
+    exportEncoded() {
+        const lib = this.imgLib;
+        const data = lib.encode();
+        if (data === null) {
+            console.log('encode error');
+            return;
+        }
+
+        const blob = new Blob([data], { type: "application/octet-stream" });
+        const dataUrl = URL.createObjectURL(blob);
+        const tag = document.createElement('a') as HTMLAnchorElement | null;
+        if (tag === null) {
+            return;
+        }
+        tag.href = dataUrl;
+        tag.download = 'download.qoi';
+        tag.click();
+    }
+
+    exportImage(canvas: HTMLCanvasElement) {
+        const dataUrl = canvas.toDataURL('image/png');
+        const tag = document.createElement('a') as HTMLAnchorElement | null;
+        if (tag === null) {
+            return;
+        }
+        tag.href = dataUrl;
+        tag.download = 'download.png';
+        tag.click();
+    }
 }
 
 const app = new App();
 
-function main() {
-    app.onload();
+
+
+class Dialog {
+
+    selector: string;
+    element: HTMLElement;
+
+    constructor(selector: string) {
+        const element = $(selector) as HTMLElement | null;
+        if (element === null) {
+            throw new Error(`selector ${selector} is not found`);
+        }
+        this.selector = selector;
+        this.element = element;
+    }
+
+    private static _lastIndex = 0;
+    private static _stack: Dialog[] = [];
+
+    onclose() { }
+
+    show() {
+        Dialog.show(this)
+    }
+    static show(dialog: Dialog) {
+        if (dialog.element.style.display === 'block') return;
+        app.dim(1);
+
+        if (Dialog._stack.length == 0) {
+            Dialog._lastIndex = 100;
+        }
+        Dialog._stack.push(dialog)
+        dialog.element.style.zIndex = "" + (++Dialog._lastIndex)
+        dialog.element.style.display = 'block';
+    }
+    dismiss() {
+        Dialog.dismiss(this)
+    }
+    static dismiss(dialog: Dialog) {
+        Dialog._stack = Dialog._stack.filter(value => {
+            if (value.selector === dialog.selector) {
+                this._close(value)
+                return false;
+            } else {
+                return true;
+            }
+        })
+    }
+    static _close(dialog: Dialog) {
+        app.dim(-1);
+        dialog.element.style.display = 'none';
+        dialog.onclose()
+    }
+    static dismissAll() {
+        while (Dialog._stack.length > 0) {
+            this.dismissTop()
+        }
+    }
+    static dismissTop() {
+        const top = Dialog._stack.pop();
+        if (top !== undefined) {
+            this._close(top);
+        }
+    }
+}
+
+class SaveAsDialog extends Dialog {
+    constructor() {
+        super('#dialogSaveAs')
+    }
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', main);
+    document.addEventListener('DOMContentLoaded', app.onload);
 } else {
-    main();
+    app.onload();
 }
-
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     let array = [];

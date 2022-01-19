@@ -8,12 +8,13 @@ use rapid_qoi::Qoi;
 extern crate alloc;
 
 static mut INPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
+static mut OUTPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut IMAGE_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
-static mut DECODED_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::new());
+static mut IMAGE_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::empty());
 
 #[inline]
-fn decoded_info<'a>() -> &'a ImageInfo {
-    unsafe { &*DECODED_INFO.get() }
+fn image_info<'a>() -> &'a ImageInfo {
+    unsafe { &*IMAGE_INFO.get() }
 }
 
 #[inline]
@@ -21,19 +22,25 @@ fn image_buffer<'a>() -> &'a Vec<u8> {
     unsafe { &*IMAGE_BUFFER.get() }
 }
 
+#[inline]
+fn output_buffer<'a>() -> &'a Vec<u8> {
+    unsafe { &*OUTPUT_BUFFER.get() }
+}
+
 #[no_mangle]
 pub fn cleanup() {
     unsafe {
-        let ib = INPUT_BUFFER.get_mut();
-        ib.set_len(0);
-        ib.shrink_to_fit();
+        let buffer = INPUT_BUFFER.get_mut();
+        buffer.set_len(0);
+        buffer.shrink_to_fit();
 
-        let ob = IMAGE_BUFFER.get_mut();
-        ob.set_len(0);
-        ob.shrink_to_fit();
+        let buffer = IMAGE_BUFFER.get_mut();
+        buffer.set_len(0);
+        buffer.shrink_to_fit();
 
-        let di = DECODED_INFO.get_mut();
-        *di = ImageInfo::default();
+        output_buffer_cleanup();
+
+        *IMAGE_INFO.get_mut() = ImageInfo::default();
     }
 }
 
@@ -46,6 +53,15 @@ pub fn input_buffer_resize(new_len: usize) -> usize {
         ib.set_len(new_len);
 
         ib.get_unchecked(0) as *const _ as usize
+    }
+}
+
+#[no_mangle]
+pub fn output_buffer_cleanup() {
+    unsafe {
+        let buffer = OUTPUT_BUFFER.get_mut();
+        buffer.set_len(0);
+        buffer.shrink_to_fit();
     }
 }
 
@@ -65,6 +81,21 @@ pub fn image_buffer_get_size() -> usize {
 }
 
 #[no_mangle]
+pub fn output_buffer_get_base() -> usize {
+    let ob = output_buffer();
+    if ob.len() > 0 {
+        unsafe { ob.get_unchecked(0) as *const _ as usize }
+    } else {
+        usize::MAX
+    }
+}
+
+#[no_mangle]
+pub fn output_buffer_get_size() -> usize {
+    output_buffer().len()
+}
+
+#[no_mangle]
 pub fn image_buffer_resize(new_len: usize) -> usize {
     unsafe {
         let ib = IMAGE_BUFFER.get_mut();
@@ -77,34 +108,23 @@ pub fn image_buffer_resize(new_len: usize) -> usize {
 }
 
 #[no_mangle]
-pub fn decode_header() -> bool {
-    let input_buffer = unsafe { INPUT_BUFFER.get_mut().as_slice() };
-    match Qoi::decode_header(input_buffer) {
-        Ok(qoi) => {
-            let di = unsafe { DECODED_INFO.get_mut() };
-            di.width = qoi.width as isize;
-            di.height = qoi.height as isize;
-            di.has_slpha = qoi.colors.has_alpha();
-
-            true
-        }
-        Err(_) => false,
-    }
-}
-
-#[no_mangle]
 pub fn image_width() -> isize {
-    decoded_info().width
+    image_info().width
 }
 
 #[no_mangle]
 pub fn image_height() -> isize {
-    decoded_info().height
+    image_info().height
 }
 
 #[no_mangle]
-pub fn image_has_alpha() -> isize {
-    decoded_info().has_slpha as isize
+pub fn image_has_alpha() -> usize {
+    bool::from(image_info().transparency) as usize
+}
+
+#[no_mangle]
+pub fn set_image_has_alpha(value: usize) {
+    unsafe { IMAGE_INFO.get_mut() }.transparency = (value != 0).into();
 }
 
 #[no_mangle]
@@ -112,23 +132,19 @@ pub fn decode() -> bool {
     let input_buffer = unsafe { INPUT_BUFFER.get_mut().as_slice() };
     match Qoi::decode_alloc(input_buffer) {
         Ok((qoi, buffer)) => {
-            let di = unsafe { DECODED_INFO.get_mut() };
-            di.width = qoi.width as isize;
-            di.height = qoi.height as isize;
-            di.has_slpha = qoi.colors.has_alpha();
+            let info = unsafe { IMAGE_INFO.get_mut() };
+
+            let has_alpha = qoi.colors.has_alpha();
+            *info = ImageInfo::new(qoi.width as isize, qoi.height as isize, has_alpha.into());
 
             let ob = unsafe { IMAGE_BUFFER.get_mut() };
             ob.resize(0, 0);
-            if di.has_slpha {
+            if has_alpha {
                 ob.extend_from_slice(buffer.as_slice());
             } else {
-                let new_len = di.image_size() * 4;
-                if ob.capacity() < new_len {
-                    ob.reserve(new_len.wrapping_sub(ob.capacity()));
-                }
+                image_buffer_resize(info.image_size());
                 unsafe {
-                    ob.set_len(new_len);
-                    for i in 0..di.image_size() {
+                    for i in 0..info.width as usize * info.height as usize {
                         *ob.get_unchecked_mut(i * 4) = *buffer.get_unchecked(i * 3);
                         *ob.get_unchecked_mut(i * 4 + 1) = *buffer.get_unchecked(i * 3 + 1);
                         *ob.get_unchecked_mut(i * 4 + 2) = *buffer.get_unchecked(i * 3 + 2);
@@ -144,34 +160,103 @@ pub fn decode() -> bool {
 }
 
 #[no_mangle]
-pub fn encode(width: isize, height: isize, has_alpha: usize) -> usize {
-    let di = unsafe { DECODED_INFO.get_mut() };
-    di.width = width;
-    di.height = height;
-    di.has_slpha = has_alpha != 0;
+pub fn set_image_info(width: isize, height: isize) -> usize {
+    let info = ImageInfo::new(width, height, Transparency::Opaque);
+    let ib = image_buffer();
 
-    0
+    if ib.len() < info.image_size() {
+        return 0;
+    }
+
+    *unsafe { IMAGE_INFO.get_mut() } = info;
+    1
+}
+
+#[no_mangle]
+pub fn encode() -> usize {
+    let ib = image_buffer();
+    let info = image_info();
+
+    let qoi = Qoi {
+        width: info.width as u32,
+        height: info.height as u32,
+        colors: rapid_qoi::Colors::Rgba,
+    };
+    match qoi.encode_alloc(ib.as_slice()) {
+        Ok(vec) => {
+            let ob = unsafe { OUTPUT_BUFFER.get_mut() };
+            ob.resize(0, 0);
+            ob.extend_from_slice(vec.as_slice());
+            1
+        }
+        Err(_) => 0,
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-struct ImageInfo {
+pub struct ImageInfo {
     width: isize,
     height: isize,
-    has_slpha: bool,
+    transparency: Transparency,
 }
 
 impl ImageInfo {
     #[inline]
-    pub const fn new() -> Self {
+    pub const fn empty() -> Self {
         Self {
             width: 0,
             height: 0,
-            has_slpha: false,
+            transparency: Transparency::Opaque,
         }
     }
 
     #[inline]
-    pub const fn image_size(&self) -> usize {
+    pub const fn new(width: isize, height: isize, transparency: Transparency) -> Self {
+        Self {
+            width,
+            height,
+            transparency,
+        }
+    }
+
+    #[inline]
+    pub const fn number_of_pixels(&self) -> usize {
         self.width as usize * self.height as usize
+    }
+
+    #[inline]
+    pub const fn image_size(&self) -> usize {
+        self.number_of_pixels() * 4
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Transparency {
+    Opaque,
+    Tranlucent,
+}
+
+impl Default for Transparency {
+    fn default() -> Self {
+        Self::Opaque
+    }
+}
+
+impl From<bool> for Transparency {
+    fn from(val: bool) -> Self {
+        if val {
+            Self::Tranlucent
+        } else {
+            Self::Opaque
+        }
+    }
+}
+
+impl From<Transparency> for bool {
+    fn from(val: Transparency) -> Self {
+        match val {
+            Transparency::Opaque => false,
+            Transparency::Tranlucent => true,
+        }
     }
 }

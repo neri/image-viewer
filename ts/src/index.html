@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Online Image Viewer</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Image Viewer</title>
 </head>
 
 <body>
@@ -11,20 +12,31 @@
         <nav>
             <a class="button" style="float: right;" href="https://github.com/neri/image-viewer" target="_blank">Open in
                 GitHub</a>
-            ::
-            <b>Online Image Viewer</b>
-            ::
+            ::<b>Image Viewer</b>::
+            <a id='menuButton' class="button"><span id="ic_menu">&nbsp;</span> Menu</a>
+            <a id='quickExportButton' class="button"><span id="ic_file_download">&nbsp;</span> Save</a>
             <span id='infoText'></span>
-            <!-- <a id='exportButton' class="button">Export</a> -->
         </nav>
     </header>
-
     <div id="main">
-        <div id='startText'
-            style='display: inline-block; text-align: center; vertical-align: middle; width: 640px; line-height: 400px;'>
+        <div id='startText'>
             Drag and drop a file here to view the image.
         </div>
         <canvas id='mainCanvas' width='0' height='0'></canvas>
+    </div>
+
+    <div id="dialogBackground"></div>
+
+    <div id="dialogSaveAs" class="dialog">
+        <div class="dialogInner" style="width: 180px;">
+            <a class="buttonDestructive dialogCloseButton">&#x2715;</a>
+            <h2><span id="ic_file_download">&nbsp;</span> Export as... &nbsp;</h2>
+            <p>
+                <!-- <label><input id="checkSaveAlpha" type="checkbox"> Alpha Channel</label> -->
+                <a id="savePngButton" class="button">Export as PNG</a><br>
+                <a id="saveQoiButton" class="button">Export as QOI</a><br>
+            </p>
+        </div>
     </div>
 
 </body>

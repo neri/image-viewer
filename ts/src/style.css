@@ -25,6 +25,10 @@ header {
     z-index: 1;
 }
 
+a.button:link {
+    text-decoration: none;
+}
+
 .button,
 .buttonActive,
 .buttonDestructive {
@@ -72,14 +76,95 @@ header {
 
 #mainCanvasContainer {
     margin: 0 4px;
-    /* width: 272px; */
     max-width: 95%;
-    /* height: 272px; */
     background: #FFF;
     border: #9E9E9E solid 1px;
     border-radius: 4px;
 }
 
-.blur {
-    filter: brightness(75%) blur(4px);
+#startText {
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    width: 100%;
+    line-height: 300px;
 }
+
+#mainCanvas {
+    margin: 2px 4px;
+}
+
+.blur {
+    filter: blur(4px);
+}
+
+#ic_file_download {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_file_download_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}
+
+#ic_menu {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_menu_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}
+
+#dialogBackground {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.dialog {
+    display: none;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.dialogInner {
+    position: absolute;
+    box-shadow: 0 5px 15px 1px rgba(0, 0, 0, 0.5);
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%) translateX(-50%);
+    border-radius: 6px;
+    padding: 6px;
+    background: #FFF;
+}
+
+.dialogInner h2 {
+    margin: 0;
+    padding: 0 4px 4px;
+    border-bottom: #AAA dashed 1px;
+    font-size: 10pt;
+    white-space: nowrap;
+}
+
+.dialogCloseButton {
+    float: right;
+    position: relative;
+    top: -6px;
+    right: -2px;
+}
+
+/* .dialogInner p {
+    text-align: center;
+    margin: 1em 4em;
+} */
