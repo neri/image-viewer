@@ -45,7 +45,7 @@ a.button:link {
 .button:hover,
 .buttonActive:hover,
 .buttonDestructive:hover {
-    box-shadow: 1px 1px 2px 2px rgba(0, 0, 0, 0.125);
+    box-shadow: 1px 1px 2px 2px rgba(0, 0, 0, 0.25);
 }
 
 .button {
@@ -98,26 +98,6 @@ a.button:link {
     filter: blur(4px);
 }
 
-#ic_file_download {
-    display: inline-block;
-    min-width: 18px;
-    min-height: 18px;
-    vertical-align: middle;
-    padding: 0;
-    background: url('../../ext/material-design-icons/ic_file_download_black_18dp.png') no-repeat;
-    background-size: 18px 18px;
-}
-
-#ic_menu {
-    display: inline-block;
-    min-width: 18px;
-    min-height: 18px;
-    vertical-align: middle;
-    padding: 0;
-    background: url('../../ext/material-design-icons/ic_menu_black_18dp.png') no-repeat;
-    background-size: 18px 18px;
-}
-
 #dialogBackground {
     display: none;
     position: absolute;
@@ -164,7 +144,37 @@ a.button:link {
     right: -2px;
 }
 
-/* .dialogInner p {
-    text-align: center;
-    margin: 1em 4em;
-} */
+fieldset {
+    border: #9E9E9E dashed 1px;
+    border-radius: 8px;
+}
+
+#ic_file_download {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_file_download_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}
+
+#ic_menu {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_menu_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}
+
+#ic_launch {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_launch_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}

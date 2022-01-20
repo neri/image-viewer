@@ -10,12 +10,11 @@
 <body>
     <header>
         <nav>
-            <a class="button" style="float: right;" href="https://github.com/neri/image-viewer" target="_blank">Open in
-                GitHub</a>
+            <a class="button" style="float: right;" href="https://github.com/neri/image-viewer" target="_blank"><span
+                    id="ic_launch">&nbsp;</span> Open in GitHub</a>
             ::<b>Image Viewer</b>::
             <a id='menuButton' class="button"><span id="ic_menu">&nbsp;</span> Menu</a>
             <a id='quickExportButton' class="button"><span id="ic_file_download">&nbsp;</span> Save</a>
-            <span id='infoText'></span>
         </nav>
     </header>
     <div id="main">
@@ -30,12 +29,17 @@
     <div id="dialogSaveAs" class="dialog">
         <div class="dialogInner" style="width: 180px;">
             <a class="buttonDestructive dialogCloseButton">&#x2715;</a>
-            <h2><span id="ic_file_download">&nbsp;</span> Export as... &nbsp;</h2>
+            <h2><span id="ic_menu">&nbsp;</span> Menu</h2>
             <p>
-                <!-- <label><input id="checkSaveAlpha" type="checkbox"> Alpha Channel</label> -->
-                <a id="savePngButton" class="button">Export as PNG</a><br>
-                <a id="saveQoiButton" class="button">Export as QOI</a><br>
+                <span id='infoText'>NO IMAGE</span>
             </p>
+            <fieldset>
+                <legend><span id="ic_file_download">&nbsp;</span> Save as...</legend>
+                <label><input id="checkSaveAlpha" type="checkbox"> Alpha Channel</label><br>
+                <a id="saveQoiButton" class="button">Save as QOI</a><br>
+                <hr>
+                <a id="savePngButton" class="button">Save as PNG</a><br>
+            </fieldset>
         </div>
     </div>
 

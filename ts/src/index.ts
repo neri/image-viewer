@@ -45,6 +45,8 @@ class App {
                 this.dim(-1);
             }
 
+            new SaveAsDialog().dismiss();
+
             const reader = new FileReader();
             reader.addEventListener('load', (e) => {
                 const result = e.target?.result ?? '';
@@ -81,8 +83,8 @@ class App {
             const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
             if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
                 this.prepareToExportImage(canvas);
-                new SaveAsDialog().show();
             }
+            new SaveAsDialog().show();
         });
 
         ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
@@ -124,9 +126,9 @@ class App {
         }
         const { width, height } = canvas;
         if (width > 0 && height > 0) {
-            infoText.innerHTML = `${width} x ${height}`;
+            infoText.innerHTML = `Image Size: ${width} x ${height}`;
         } else {
-            infoText.innerHTML = '#ERROR';
+            infoText.innerHTML = 'Load Error';
         }
         startText.style.display = 'none';
     }
@@ -188,6 +190,16 @@ class App {
 
     exportEncoded() {
         const lib = this.imgLib;
+        const { width, height } = lib;
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
+        if (checkSaveAlpha !== null) {
+            lib.image_has_alpha = checkSaveAlpha.checked;
+        }
+
         const data = lib.encode();
         if (data === null) {
             console.log('encode error');
@@ -219,9 +231,10 @@ class App {
 
 const app = new App();
 
-
-
 class Dialog {
+
+    private static _lastIndex = 0;
+    private static _stack: Dialog[] = [];
 
     selector: string;
     element: HTMLElement;
@@ -234,9 +247,6 @@ class Dialog {
         this.selector = selector;
         this.element = element;
     }
-
-    private static _lastIndex = 0;
-    private static _stack: Dialog[] = [];
 
     onclose() { }
 

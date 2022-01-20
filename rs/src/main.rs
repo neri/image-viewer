@@ -3,7 +3,7 @@
 
 use alloc::vec::Vec;
 use core::cell::UnsafeCell;
-use rapid_qoi::Qoi;
+use rapid_qoi::{Colors, Qoi};
 
 extern crate alloc;
 
@@ -144,7 +144,7 @@ pub fn decode() -> bool {
             } else {
                 image_buffer_resize(info.image_size());
                 unsafe {
-                    for i in 0..info.width as usize * info.height as usize {
+                    for i in 0..info.number_of_pixels() {
                         *ob.get_unchecked_mut(i * 4) = *buffer.get_unchecked(i * 3);
                         *ob.get_unchecked_mut(i * 4 + 1) = *buffer.get_unchecked(i * 3 + 1);
                         *ob.get_unchecked_mut(i * 4 + 2) = *buffer.get_unchecked(i * 3 + 2);
@@ -161,11 +161,19 @@ pub fn decode() -> bool {
 
 #[no_mangle]
 pub fn set_image_info(width: isize, height: isize) -> usize {
-    let info = ImageInfo::new(width, height, Transparency::Opaque);
+    let mut info = ImageInfo::new(width, height, Transparency::Opaque);
     let ib = image_buffer();
 
     if ib.len() < info.image_size() {
         return 0;
+    }
+
+    for i in 0..info.number_of_pixels() {
+        let p = unsafe { *ib.get_unchecked(i * 4 + 3) };
+        if p != u8::MAX {
+            info.transparency = Transparency::Tranlucent;
+            break;
+        }
     }
 
     *unsafe { IMAGE_INFO.get_mut() } = info;
@@ -180,9 +188,27 @@ pub fn encode() -> usize {
     let qoi = Qoi {
         width: info.width as u32,
         height: info.height as u32,
-        colors: rapid_qoi::Colors::Rgba,
+        colors: match info.transparency {
+            Transparency::Opaque => Colors::Rgb,
+            Transparency::Tranlucent => Colors::Rgba,
+        },
     };
-    match qoi.encode_alloc(ib.as_slice()) {
+    let result = if qoi.colors.has_alpha() {
+        qoi.encode_alloc(ib.as_slice())
+    } else {
+        let buffer_size = info.number_of_pixels() * 3;
+        let mut vec = Vec::with_capacity(buffer_size);
+        unsafe {
+            vec.set_len(buffer_size);
+            for i in 0..info.number_of_pixels() {
+                *vec.get_unchecked_mut(i * 3) = *ib.get_unchecked(i * 4);
+                *vec.get_unchecked_mut(i * 3 + 1) = *ib.get_unchecked(i * 4 + 1);
+                *vec.get_unchecked_mut(i * 3 + 2) = *ib.get_unchecked(i * 4 + 2);
+            }
+        }
+        qoi.encode_alloc(vec.as_slice())
+    };
+    match result {
         Ok(vec) => {
             let ob = unsafe { OUTPUT_BUFFER.get_mut() };
             ob.resize(0, 0);

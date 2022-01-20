@@ -2,17 +2,13 @@
 
 ## Features
 
-- Image files can be viewed online.
+- Allows you to view and save image files.
 - Supports QOI format
 
 ### Supported Image Format
 
 - QOI (via WebAssembly)
 - Formats natively supported by the browser's IMG tag, such as PNG (via JavaScrupt)
-
-### Future Features
-
-- Export
 
 ## Requirements
 
