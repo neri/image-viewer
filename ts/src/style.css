@@ -98,16 +98,6 @@ a.button:link {
     filter: blur(4px);
 }
 
-#dialogBackground {
-    display: none;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.25);
-}
-
 .dialog {
     display: none;
     position: fixed;

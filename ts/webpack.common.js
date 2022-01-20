@@ -9,14 +9,12 @@ module.exports = {
             { test: /\.wasm$/, type: 'webassembly/async' },
             {
                 test: /\.css/,
-                use: [
-                    "style-loader",
-                    {
-                        loader: "css-loader",
-                        options: { url: true }
-                    }
-                ]
+                use: ["style-loader", "css-loader",]
             },
+            {
+                test: /\.png$/,
+                type: 'asset/inline',
+            }
         ]
     },
     output: {

@@ -1,4 +1,7 @@
-# Online Image Viewer
+# Image Viewer
+
+- [Launch now](https://nerry.jp/image-viewer/)
+- [Repository](https://github.com/neri/image-viewer)
 
 ## Features
 
@@ -18,7 +21,7 @@
 
 ### Build Environments
 
-- npm (TypeScript + webpack)
+- npm (webpack, TypeScript)
 - Rust
 
 ## Licence
