@@ -4,6 +4,8 @@ import { ImageLib } from './lib';
 
 const $ = (x: string) => document.querySelector(x);
 
+const alert = (x: string) => new AlertDialog(x).show();
+
 class App {
 
     private imgLib: ImageLib;
@@ -80,10 +82,6 @@ class App {
         });
 
         ($('#menuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
-            if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
-                this.prepareToExportImage(canvas);
-            }
             new SaveAsDialog().show();
         });
 
@@ -137,7 +135,7 @@ class App {
         const lib = this.imgLib;
         if (lib.decode(blob)) {
             const { width, height } = lib;
-            console.log(`LOADED VIA WASM width: ${width} height: ${height} has_alpha: ${lib.image_has_alpha}`);
+            console.log(`Loaded via WASM width: ${width} height: ${height} has_alpha: ${lib.image_has_alpha}`);
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
@@ -153,16 +151,14 @@ class App {
             img.src = "data:" + imageType + ";base64," + arrayBufferToBase64(blob);
             img.decode().then(() => {
                 const { width, height } = img;
-                console.log(`LOADED VIA IMG width: ${width} height: ${height}`);
+                console.log(`Loaded via IMG width: ${width} height: ${height}`);
                 canvas.width = width;
                 canvas.height = height;
                 canvas.getContext('2d')?.drawImage(img, 0, 0);
                 this.updateInfo(canvas);
             }).catch((reason) => {
-                canvas.width = 0;
-                canvas.height = 0;
-                console.log('DECODE ERROR', reason);
-                this.updateInfo(canvas);
+                alert("Unsupported file type");
+                console.log('Decode error', reason);
             });
         }
     }
@@ -201,7 +197,8 @@ class App {
         }
 
         const data = lib.encode();
-        if (data === null) {
+        if (data === undefined) {
+            alert("ENCODE ERROR");
             console.log('encode error');
             return;
         }
@@ -298,8 +295,25 @@ class Dialog {
 class SaveAsDialog extends Dialog {
     constructor() {
         super('#dialogSaveAs')
+
+        const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+        if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+            app.prepareToExportImage(canvas);
+        }
     }
 }
+
+class AlertDialog extends Dialog {
+    constructor(message: string, /* options: undefined = undefined */) {
+        super('#dialogAlert');
+
+        const alertMessage = ($('#alertMessage') as HTMLElement | null);
+        if (alertMessage !== null) {
+            alertMessage.innerText = message;
+        }
+    }
+}
+
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', app.onload);

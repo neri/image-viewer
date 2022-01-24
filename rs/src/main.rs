@@ -118,8 +118,8 @@ pub fn image_height() -> isize {
 }
 
 #[no_mangle]
-pub fn image_has_alpha() -> usize {
-    bool::from(image_info().transparency) as usize
+pub fn image_has_alpha() -> bool {
+    image_info().transparency.into()
 }
 
 #[no_mangle]
@@ -138,9 +138,9 @@ pub fn decode() -> bool {
             *info = ImageInfo::new(qoi.width as isize, qoi.height as isize, has_alpha.into());
 
             let ob = unsafe { IMAGE_BUFFER.get_mut() };
-            ob.resize(0, 0);
             if has_alpha {
-                ob.extend_from_slice(buffer.as_slice());
+                *ob = buffer;
+                // ob.extend_from_slice(buffer.as_slice());
             } else {
                 image_buffer_resize(info.image_size());
                 unsafe {
@@ -160,28 +160,28 @@ pub fn decode() -> bool {
 }
 
 #[no_mangle]
-pub fn set_image_info(width: isize, height: isize) -> usize {
+pub fn set_image_info(width: isize, height: isize) -> bool {
     let mut info = ImageInfo::new(width, height, Transparency::Opaque);
     let ib = image_buffer();
 
     if ib.len() < info.image_size() {
-        return 0;
+        return false;
     }
 
     for i in 0..info.number_of_pixels() {
         let p = unsafe { *ib.get_unchecked(i * 4 + 3) };
         if p != u8::MAX {
-            info.transparency = Transparency::Tranlucent;
+            info.transparency = Transparency::Translucent;
             break;
         }
     }
 
     *unsafe { IMAGE_INFO.get_mut() } = info;
-    1
+    true
 }
 
 #[no_mangle]
-pub fn encode() -> usize {
+pub fn encode() -> bool {
     let ib = image_buffer();
     let info = image_info();
 
@@ -190,7 +190,7 @@ pub fn encode() -> usize {
         height: info.height as u32,
         colors: match info.transparency {
             Transparency::Opaque => Colors::Rgb,
-            Transparency::Tranlucent => Colors::Rgba,
+            Transparency::Translucent => Colors::Rgba,
         },
     };
     let result = if qoi.colors.has_alpha() {
@@ -211,11 +211,10 @@ pub fn encode() -> usize {
     match result {
         Ok(vec) => {
             let ob = unsafe { OUTPUT_BUFFER.get_mut() };
-            ob.resize(0, 0);
-            ob.extend_from_slice(vec.as_slice());
-            1
+            *ob = vec;
+            true
         }
-        Err(_) => 0,
+        Err(_) => false,
     }
 }
 
@@ -259,7 +258,7 @@ impl ImageInfo {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Transparency {
     Opaque,
-    Tranlucent,
+    Translucent,
 }
 
 impl Default for Transparency {
@@ -271,7 +270,7 @@ impl Default for Transparency {
 impl From<bool> for Transparency {
     fn from(val: bool) -> Self {
         if val {
-            Self::Tranlucent
+            Self::Translucent
         } else {
             Self::Opaque
         }
@@ -282,7 +281,7 @@ impl From<Transparency> for bool {
     fn from(val: Transparency) -> Self {
         match val {
             Transparency::Opaque => false,
-            Transparency::Tranlucent => true,
+            Transparency::Translucent => true,
         }
     }
 }

@@ -134,6 +134,11 @@ a.button:link {
     right: -2px;
 }
 
+#dialogAlert p {
+    text-align: center;
+    margin: 1em 4em;
+}
+
 fieldset {
     border: #9E9E9E dashed 1px;
     border-radius: 8px;

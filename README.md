@@ -24,7 +24,7 @@
 - npm (webpack, TypeScript)
 - Rust
 
-## Licence
+## License
 
 MIT License
 

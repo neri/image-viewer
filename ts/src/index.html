@@ -18,10 +18,16 @@
         </nav>
     </header>
     <div id="main">
-        <div id='startText'>
-            Drag and drop a file here to view the image.
-        </div>
+        <div id='startText'>Drag and drop a file here to view the image.</div>
         <canvas id='mainCanvas' width='0' height='0'></canvas>
+    </div>
+
+    <div id="dialogAlert" class="dialog">
+        <div class="dialogInner">
+            <a class="buttonDestructive dialogCloseButton">&#x2715;</a>
+            <h2>&nbsp;</h2>
+            <p id="alertMessage"></p>
+        </div>
     </div>
 
     <div id="dialogSaveAs" class="dialog">

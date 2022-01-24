@@ -12,20 +12,20 @@ export class ImageLib {
         const base = wasm.input_buffer_resize(bytes.length);
         const memory = new Uint8Array(wasm.memory.buffer);
         memory.set(bytes, base);
-        return wasm.decode() != 0;
+        return wasm.decode();
     }
     set_image_buffer(buffer: ArrayBuffer, width: number, height: number): boolean {
         const bytes = new Uint8Array(buffer);
         const base = wasm.image_buffer_resize(bytes.length);
         const memory = new Uint8Array(wasm.memory.buffer);
         memory.set(bytes, base);
-        return wasm.set_image_info(width, height) != 0;
+        return wasm.set_image_info(width, height);
     }
-    encode(): ArrayBuffer | null {
+    encode(): ArrayBuffer | undefined {
         if (wasm.encode()) {
             return this.output_buffer.buffer;
         } else {
-            return null;
+            return undefined;
         }
     }
     get width(): number {
@@ -35,10 +35,10 @@ export class ImageLib {
         return wasm.image_height();
     }
     get image_has_alpha(): boolean {
-        return wasm.image_has_alpha() != 0;
+        return wasm.image_has_alpha();
     }
     set image_has_alpha(value: boolean) {
-        wasm.set_image_has_alpha(value ? 1 : 0);
+        wasm.set_image_has_alpha(value);
     }
     get image_buffer(): Uint8Array {
         const base = wasm.image_buffer_get_base();
