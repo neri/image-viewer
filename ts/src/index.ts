@@ -1,6 +1,6 @@
 
 import './style.css';
-import { ImageLib } from './lib';
+import { ImageLib, ImageType } from './libimage';
 
 const $ = (x: string) => document.querySelector(x);
 
@@ -68,13 +68,6 @@ class App {
             reader.readAsArrayBuffer(file);
         }, false);
 
-        ($('#quickExportButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
-            if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
-                this.quickExport(canvas);
-            }
-        });
-
         document.querySelectorAll('.dialogCloseButton').forEach(button => {
             button.addEventListener('click', () => {
                 Dialog.dismissTop()
@@ -93,7 +86,30 @@ class App {
         });
 
         ($('#saveQoiButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            this.exportEncoded();
+            this.exportEncoded(ImageType.Qoi);
+        });
+
+        ($('#saveMpicButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            this.exportEncoded(ImageType.Mpic);
+        });
+
+        ($('#fileLocal') as HTMLInputElement | null)?.addEventListener('change', (e) => {
+            const file = ((e.target as HTMLInputElement)?.files ?? [])[0];
+            if (file !== null) {
+                const reader = new FileReader();
+                reader.addEventListener('load', (e) => {
+                    const result = e.target?.result;
+                    if (result instanceof ArrayBuffer) {
+                        const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+                        if (canvas === null) {
+                            return;
+                        }
+                        new SaveAsDialog().dismiss();
+                        this.loadImage(canvas, result);
+                    }
+                });
+                reader.readAsArrayBuffer(file);
+            }
         });
     }
 
@@ -163,11 +179,6 @@ class App {
         }
     }
 
-    quickExport(canvas: HTMLCanvasElement) {
-        this.prepareToExportImage(canvas);
-        this.exportEncoded();
-    }
-
     prepareToExportImage(canvas: HTMLCanvasElement) {
         const lib = this.imgLib;
         const { width, height } = canvas;
@@ -184,7 +195,7 @@ class App {
         }
     }
 
-    exportEncoded() {
+    exportEncoded(type: ImageType) {
         const lib = this.imgLib;
         const { width, height } = lib;
         if (width <= 0 || height <= 0) {
@@ -196,7 +207,7 @@ class App {
             lib.image_has_alpha = checkSaveAlpha.checked;
         }
 
-        const data = lib.encode();
+        const data = lib.encode(type);
         if (data === undefined) {
             alert("ENCODE ERROR");
             console.log('encode error');
@@ -210,7 +221,7 @@ class App {
             return;
         }
         tag.href = dataUrl;
-        tag.download = 'download.qoi';
+        tag.download = `download.${type.toString()}`;
         tag.click();
     }
 
@@ -330,3 +341,4 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     }
     return btoa(array.join(''));
 }
+

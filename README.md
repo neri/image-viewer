@@ -1,17 +1,20 @@
-# Image Viewer
+# Online Image Viewer
 
 - [Launch now](https://nerry.jp/image-viewer/)
 - [Repository](https://github.com/neri/image-viewer)
 
 ## Features
 
-- Allows you to view and save image files.
-- Supports QOI format
+- This application can display and save image files using a WebAssembly decoder.
 
 ### Supported Image Format
 
-- QOI (via WebAssembly)
-- Formats natively supported by the browser's IMG tag, such as PNG (via JavaScrupt)
+| Format                               | Load | Save |                                                  |
+| ------------------------------------ | ---- | ---- | ------------------------------------------------ |
+| PNG                                  | ✅    | ✅    | Via the IMG tag                                  |
+| [QOI](https://qoiformat.org/)        | ✅    | ✅    | Alpha channel support                            |
+| [MPIC](https://github.com/neri/mpic) | ✅    | ✅    |                                                  |
+| other                                | ✅    |      | Other formats supported by the browser's IMG tag |
 
 ## Requirements
 

@@ -1,4 +1,9 @@
-import * as wasm from '../../rs/lib/libqoi';
+import * as wasm from '../../rs/lib/libimage';
+
+export enum ImageType {
+    Qoi = "qoi",
+    Mpic = "mpic",
+}
 
 /**
  * Wasm Image Library Wrapper
@@ -21,12 +26,22 @@ export class ImageLib {
         memory.set(bytes, base);
         return wasm.set_image_info(width, height);
     }
-    encode(): ArrayBuffer | undefined {
-        if (wasm.encode()) {
-            return this.output_buffer.buffer;
-        } else {
-            return undefined;
+    encode(type: ImageType): ArrayBuffer | undefined {
+        switch (type) {
+            case ImageType.Qoi:
+                if (wasm.encode_qoi()) {
+                    return this.output_buffer.buffer
+                }
+                break;
+            case ImageType.Mpic:
+                if (wasm.encode_mpic()) {
+                    return this.output_buffer.buffer
+                }
+                break;
+            default:
+                break;
         }
+        return undefined;
     }
     get width(): number {
         return wasm.image_width();
@@ -63,3 +78,4 @@ export class ImageLib {
         );
     }
 }
+

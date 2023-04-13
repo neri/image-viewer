@@ -3,7 +3,8 @@
 export const memory: WebAssembly.Memory;
 export function cleanup(): void;
 export function decode(): boolean;
-export function encode(): boolean;
+export function encode_qoi(): boolean;
+export function encode_mpic(): boolean;
 export function image_buffer_get_base(): number;
 export function image_buffer_get_size(): number;
 export function image_buffer_resize(new_len: number): number;

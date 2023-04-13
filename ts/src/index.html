@@ -4,46 +4,55 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Image Viewer</title>
+    <title>Online Image Viewer</title>
 </head>
 
 <body>
     <header>
         <nav>
-            <a class="button" style="float: right;" href="https://github.com/neri/image-viewer" target="_blank"><span
-                    id="ic_launch">&nbsp;</span> Open in GitHub</a>
-            ::<b>Image Viewer</b>::
-            <a id='menuButton' class="button"><span id="ic_menu">&nbsp;</span> Menu</a>
-            <a id='quickExportButton' class="button"><span id="ic_file_download">&nbsp;</span> Save</a>
+            <a id='menuButton'><span id="ic_menu_white">&nbsp;</span></a>
+            <b>Online Image Viewer</b>
         </nav>
     </header>
     <div id="main">
-        <div id='startText'>Drag and drop a file here to view the image.</div>
+        <div id='startText'>Drag and drop a file here or select from the menu.</div>
         <canvas id='mainCanvas' width='0' height='0'></canvas>
     </div>
 
     <div id="dialogAlert" class="dialog">
         <div class="dialogInner">
             <a class="buttonDestructive dialogCloseButton">&#x2715;</a>
-            <h2>&nbsp;</h2>
+            <h2><span id="ic_error">&nbsp;</span></h2>
             <p id="alertMessage"></p>
         </div>
     </div>
 
     <div id="dialogSaveAs" class="dialog">
-        <div class="dialogInner" style="width: 180px;">
+        <div class="dialogInner">
             <a class="buttonDestructive dialogCloseButton">&#x2715;</a>
             <h2><span id="ic_menu">&nbsp;</span> Menu</h2>
             <p>
+                <span id="ic_image">&nbsp;</span>
                 <span id='infoText'>NO IMAGE</span>
             </p>
+            <label>
+                <a id="loadButton" class="button"><span id="ic_folder_open">&nbsp;</span>
+                    Open file</a>
+                <input id="fileLocal" type="file" style="display: none;">
+            </label><br>
+            <br>
             <fieldset>
-                <legend><span id="ic_file_download">&nbsp;</span> Save as...</legend>
+                <legend><span id="ic_cloud_download">&nbsp;</span> Save as...</legend>
+                <a id="saveQoiButton" class="button">QOI</a>
                 <label><input id="checkSaveAlpha" type="checkbox"> Alpha Channel</label><br>
-                <a id="saveQoiButton" class="button">Save as QOI</a><br>
                 <hr>
-                <a id="savePngButton" class="button">Save as PNG</a><br>
+                <a id="saveMpicButton" class="button">MPIC</a><br>
+                <hr>
+                <a id="savePngButton" class="button">PNG</a><br>
             </fieldset>
+            <br>
+            <a class="button" href="https://github.com/neri/image-viewer" target="_blank"><span
+                    id="ic_launch">&nbsp;</span> Open in GitHub</a>
         </div>
     </div>
 
