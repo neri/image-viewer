@@ -13,40 +13,43 @@ static mut IMAGE_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut IMAGE_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::empty());
 
 #[inline]
-fn image_info<'a>() -> &'a ImageInfo {
-    unsafe { &*IMAGE_INFO.get() }
+fn image_info<'a>() -> &'a mut ImageInfo {
+    unsafe { IMAGE_INFO.get_mut() }
 }
 
 #[inline]
-fn image_buffer<'a>() -> &'a Vec<u8> {
-    unsafe { &*IMAGE_BUFFER.get() }
+fn image_buffer<'a>() -> &'a mut Vec<u8> {
+    unsafe { IMAGE_BUFFER.get_mut() }
 }
 
 #[inline]
-fn output_buffer<'a>() -> &'a Vec<u8> {
-    unsafe { &*OUTPUT_BUFFER.get() }
+fn output_buffer<'a>() -> &'a mut Vec<u8> {
+    unsafe { OUTPUT_BUFFER.get_mut() }
+}
+
+#[inline]
+fn input_buffer<'a>() -> &'a mut Vec<u8> {
+    unsafe { INPUT_BUFFER.get_mut() }
 }
 
 #[no_mangle]
 pub fn cleanup() {
-    let buffer = unsafe { INPUT_BUFFER.get_mut() };
+    let buffer = input_buffer();
     buffer.clear();
     buffer.shrink_to_fit();
 
-    let buffer = unsafe { IMAGE_BUFFER.get_mut() };
+    let buffer = image_buffer();
     buffer.clear();
     buffer.shrink_to_fit();
 
     output_buffer_cleanup();
 
-    unsafe {
-        *IMAGE_INFO.get_mut() = ImageInfo::default();
-    }
+    *image_info() = ImageInfo::default();
 }
 
 #[no_mangle]
 pub fn input_buffer_resize(new_len: usize) -> usize {
-    let ib = unsafe { INPUT_BUFFER.get_mut() };
+    let ib = input_buffer();
     ib.clear();
     ib.resize(new_len, 0);
 
@@ -55,7 +58,7 @@ pub fn input_buffer_resize(new_len: usize) -> usize {
 
 #[no_mangle]
 pub fn output_buffer_cleanup() {
-    let buffer = unsafe { OUTPUT_BUFFER.get_mut() };
+    let buffer = output_buffer();
     buffer.clear();
     buffer.shrink_to_fit();
 }
@@ -92,7 +95,7 @@ pub fn output_buffer_get_size() -> usize {
 
 #[no_mangle]
 pub fn image_buffer_resize(new_len: usize) -> usize {
-    let ib = unsafe { IMAGE_BUFFER.get_mut() };
+    let ib = image_buffer();
     ib.clear();
     ib.resize(new_len, 0);
 
@@ -116,29 +119,26 @@ pub fn image_has_alpha() -> bool {
 
 #[no_mangle]
 pub fn set_image_has_alpha(value: usize) {
-    unsafe { IMAGE_INFO.get_mut() }.transparency = (value != 0).into();
+    image_info().transparency = (value != 0).into();
 }
 
 #[no_mangle]
 pub fn decode() -> bool {
-    let input_buffer = unsafe { INPUT_BUFFER.get_mut().as_slice() };
+    let input_buffer = input_buffer().as_slice();
 
     match Qoi::decode_alloc(input_buffer) {
         Ok((qoi, buffer)) => {
-            let info = unsafe { IMAGE_INFO.get_mut() };
-
             let has_alpha = qoi.colors.has_alpha();
-            *info = ImageInfo::new(qoi.width as isize, qoi.height as isize, has_alpha.into());
+            *image_info() =
+                ImageInfo::new(qoi.width as isize, qoi.height as isize, has_alpha.into());
 
-            let ob = unsafe { IMAGE_BUFFER.get_mut() };
+            let ob = image_buffer();
             ob.clear();
             if has_alpha {
                 ob.extend_from_slice(buffer.as_slice());
             } else {
                 for rgb in buffer.chunks(3) {
-                    ob.push(rgb[0]);
-                    ob.push(rgb[1]);
-                    ob.push(rgb[2]);
+                    ob.extend_from_slice(rgb);
                     ob.push(u8::MAX);
                 }
             }
@@ -151,24 +151,19 @@ pub fn decode() -> bool {
     if let Some(decoder) = mpic::Decoder::<()>::new(input_buffer) {
         let mpic_info = decoder.info();
 
-        let info = unsafe { IMAGE_INFO.get_mut() };
-        *info = ImageInfo::new(
+        *image_info() = ImageInfo::new(
             mpic_info.width() as isize,
             mpic_info.height() as isize,
             Transparency::Opaque,
         );
 
-        let ob = unsafe { IMAGE_BUFFER.get_mut() };
-        ob.clear();
-        ob.resize(info.image_size(), 0);
-        match decoder.decode(|x, y, rgb| {
-            let index = (x as usize + y as usize * info.width as usize) * 4;
-            ob[index + 0] = rgb.r;
-            ob[index + 1] = rgb.g;
-            ob[index + 2] = rgb.b;
-            ob[index + 3] = u8::MAX;
-        }) {
-            Ok(_) => return true,
+        match decoder.decode_rgba() {
+            Ok(vec) => {
+                let ob = image_buffer();
+                ob.clear();
+                ob.extend_from_slice(vec.as_slice());
+                return true;
+            }
             Err(_) => (),
         }
     }
@@ -185,15 +180,15 @@ pub fn set_image_info(width: isize, height: isize) -> bool {
         return false;
     }
 
-    for i in 0..info.number_of_pixels() {
-        let p = unsafe { *ib.get_unchecked(i * 4 + 3) };
+    for rgba in ib.chunks(4) {
+        let p = rgba[3];
         if p != u8::MAX {
             info.transparency = Transparency::Translucent;
             break;
         }
     }
 
-    *unsafe { IMAGE_INFO.get_mut() } = info;
+    *image_info() = info;
     true
 }
 
@@ -224,8 +219,7 @@ pub fn encode_qoi() -> bool {
     };
     match result {
         Ok(vec) => {
-            let ob = unsafe { OUTPUT_BUFFER.get_mut() };
-            *ob = vec;
+            *output_buffer() = vec;
             true
         }
         Err(_) => false,
@@ -244,15 +238,10 @@ pub fn encode_mpic() -> bool {
         vec.push(rgba[1]);
         vec.push(rgba[2]);
     }
-    let ib = vec.as_slice();
 
-    let mut vec = Vec::new();
-    match mpic::Encoder::encode(ib, info.width as u32, info.height as u32, |v| {
-        vec.extend_from_slice(v);
-    }) {
-        Ok(_) => {
-            let ob = unsafe { OUTPUT_BUFFER.get_mut() };
-            *ob = vec;
+    match mpic::Encoder::encode(vec.as_slice(), info.width as u32, info.height as u32) {
+        Ok(vec) => {
+            *output_buffer() = vec;
             true
         }
         Err(_) => false,

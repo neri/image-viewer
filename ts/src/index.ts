@@ -8,6 +8,7 @@ const alert = (x: string) => new AlertDialog(x).show();
 
 class App {
 
+    private baseName = 'download';
     private imgLib: ImageLib;
 
     constructor() {
@@ -49,6 +50,11 @@ class App {
 
             new SaveAsDialog().dismiss();
 
+            const file = e.dataTransfer?.files[0];
+            if (file === undefined) {
+                return;
+            }
+            const name = file.name;
             const reader = new FileReader();
             reader.addEventListener('load', (e) => {
                 const result = e.target?.result ?? '';
@@ -59,12 +65,8 @@ class App {
                 if (canvas === null) {
                     return;
                 }
-                this.loadImage(canvas, result);
+                this.loadImage(name, canvas, result);
             });
-            const file = e.dataTransfer?.files[0];
-            if (file === undefined) {
-                return;
-            }
             reader.readAsArrayBuffer(file);
         }, false);
 
@@ -96,6 +98,7 @@ class App {
         ($('#fileLocal') as HTMLInputElement | null)?.addEventListener('change', (e) => {
             const file = ((e.target as HTMLInputElement)?.files ?? [])[0];
             if (file !== null) {
+                const name = file.name;
                 const reader = new FileReader();
                 reader.addEventListener('load', (e) => {
                     const result = e.target?.result;
@@ -105,7 +108,7 @@ class App {
                             return;
                         }
                         new SaveAsDialog().dismiss();
-                        this.loadImage(canvas, result);
+                        this.loadImage(name, canvas, result);
                     }
                 });
                 reader.readAsArrayBuffer(file);
@@ -129,49 +132,53 @@ class App {
         }
     }
 
-    updateInfo(canvas: HTMLCanvasElement) {
-        const infoText = $('#infoText');
-        if (infoText === null) {
+    updateInfo(name: string, width: number, height: number) {
+        const titleText = $('#titleText');
+        if (titleText === null) {
             return;
         }
         const startText = $('#startText') as HTMLDivElement;
         if (startText === null) {
             return;
         }
-        const { width, height } = canvas;
+        let baseName = name.split('/').pop() ?? '';
+        if (baseName.lastIndexOf(".") != -1) {
+            baseName = baseName.substring(0, baseName.lastIndexOf("."));
+        }
+        this.baseName = baseName;
         if (width > 0 && height > 0) {
-            infoText.innerHTML = `Image Size: ${width} x ${height}`;
-        } else {
-            infoText.innerHTML = 'Load Error';
+            const title = `${baseName} (${width} x ${height})`;
+            titleText.innerHTML = title;
+            document.title = title;
         }
         startText.style.display = 'none';
     }
 
-    loadImage(canvas: HTMLCanvasElement, blob: ArrayBuffer) {
+    loadImage(name: string, canvas: HTMLCanvasElement, blob: ArrayBuffer) {
         const lib = this.imgLib;
         if (lib.decode(blob)) {
             const { width, height } = lib;
-            console.log(`Loaded via WASM width: ${width} height: ${height} has_alpha: ${lib.image_has_alpha}`);
+            console.log(`Loaded ${name} via WASM (${width} x ${height}) has_alpha: ${lib.image_has_alpha}`);
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx !== null) {
-                const imageData = ctx.getImageData(0, 0, width, height);
+                const imageData = ctx.createImageData(width, height);
                 imageData.data.set(lib.image_buffer);
                 ctx.putImageData(imageData, 0, 0);
             }
-            this.updateInfo(canvas);
+            this.updateInfo(name, width, height);
         } else {
             const img = new Image();
             const imageType = 'image/png';
             img.src = "data:" + imageType + ";base64," + arrayBufferToBase64(blob);
             img.decode().then(() => {
                 const { width, height } = img;
-                console.log(`Loaded via IMG width: ${width} height: ${height}`);
+                console.log(`Loaded ${name} via IMG (${width} x ${height})`);
                 canvas.width = width;
                 canvas.height = height;
                 canvas.getContext('2d')?.drawImage(img, 0, 0);
-                this.updateInfo(canvas);
+                this.updateInfo(name, width, height);
             }).catch((reason) => {
                 alert("Unsupported file type");
                 console.log('Decode error', reason);
@@ -221,7 +228,7 @@ class App {
             return;
         }
         tag.href = dataUrl;
-        tag.download = `download.${type.toString()}`;
+        tag.download = `${this.baseName}.${type.toString()}`;
         tag.click();
     }
 
@@ -232,7 +239,7 @@ class App {
             return;
         }
         tag.href = dataUrl;
-        tag.download = 'download.png';
+        tag.download = `${this.baseName}.png`;
         tag.click();
     }
 }

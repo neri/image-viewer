@@ -72,7 +72,7 @@ dependencies = [
 [[package]]
 name = "mpic"
 version = "0.1.0"
-source = "git+https://github.com/neri/mpic#4275c8308f481ec20d416b8bafc3de52cdfef28c"
+source = "git+https://github.com/neri/mpic#ca4ae174df66aed3490c79b077704b161a0d8dc3"
 dependencies = [
  "heapless",
 ]
