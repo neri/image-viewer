@@ -11,9 +11,9 @@
 
 | Format                               | Load | Save |                                                  |
 | ------------------------------------ | ---- | ---- | ------------------------------------------------ |
-| PNG                                  | ✅    | ✅    | Via the IMG tag                                  |
 | [QOI](https://qoiformat.org/)        | ✅    | ✅    | Alpha channel support                            |
 | [MPIC](https://github.com/neri/mpic) | ✅    | ✅    |                                                  |
+| PNG                                  | ✅    | ✅    | Via the IMG tag                                  |
 | other                                | ✅    |      | Other formats supported by the browser's IMG tag |
 
 ## Requirements
