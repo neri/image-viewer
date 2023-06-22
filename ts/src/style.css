@@ -1,6 +1,6 @@
 html {
-    background: #F5F5F5;
-    color: #757575;
+    background: url('../../images/transparent.png');
+    color: #555555;
     font: 10pt "ヒラギノ丸ゴ Pro", "ヒラギノ丸ゴ Pro W4", "HiraMaruPro-W4", "HiraKakuProN-W3", sans-serif;
     -webkit-user-select: none;
     user-select: none;
@@ -34,23 +34,35 @@ a.button:link {
 .buttonDestructive {
     display: inline-block;
     margin: 4px 2px;
-    padding: 1px 8px;
+    padding: 2px 8px;
     border-radius: 4px;
     font-weight: bold;
     font-size: 10pt;
     cursor: pointer;
     -webkit-app-region: no-drag;
+    transition: all 0.5s ease-out;
+}
+
+
+/* .button:hover,
+.buttonActive:hover,
+.buttonDestructive:hover {
+    box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.125);
+} */
+
+.button {
+    border: #E0E0E0 solid 1px;
+    color: #424242;
+}
+
+nav li .button {
+    width: 90%;
 }
 
 .button:hover,
-.buttonActive:hover,
-.buttonDestructive:hover {
-    box-shadow: 1px 1px 2px 2px rgba(0, 0, 0, 0.25);
-}
-
-.button {
-    background: #E0E0E0;
-    color: #424242;
+.button:focus {
+    background: #2196F3;
+    color: #FFF;
 }
 
 .button[disabled] {
@@ -72,6 +84,7 @@ a.button:link {
 
 #main {
     margin-top: 44px;
+    transition: filter 0.125s ease-in-out;
 }
 
 #mainCanvasContainer {
@@ -99,14 +112,15 @@ a.button:link {
     filter: blur(4px);
 }
 
-.dialog {
+.dialogOuter {
     display: none;
     position: fixed;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.25);
+    background: transparent;
+    transition: background-color 0.125s ease-in-out;
 }
 
 .dialogInner {
@@ -114,7 +128,6 @@ a.button:link {
     box-shadow: 0 5px 15px 1px rgba(0, 0, 0, 0.5);
     top: 50%;
     left: 50%;
-    transform: translateY(-50%) translateX(-50%);
     border-radius: 6px;
     padding: 6px;
     background: #FFF;
@@ -122,7 +135,7 @@ a.button:link {
 
 .dialogInner h2 {
     margin: 0;
-    padding: 0 4px 4px;
+    padding: 2px 4px 4px;
     border-bottom: #AAA dashed 1px;
     font-size: 10pt;
     white-space: nowrap;
@@ -135,20 +148,50 @@ a.button:link {
     right: -2px;
 }
 
+.dialogCloseButton:hover,
+.dialogCloseButton:focus {
+    background: #f44336;
+    color: #FFF;
+}
+
 #menuButton {
     display: inline-block;
     padding: 8px 8px;
     cursor: pointer;
 }
 
+#dialogMainMenu .dialogInner {
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100%;
+    transition: transform 0.25s ease-in-out;
+}
+
+#dialogAlert .dialogInner {
+    min-width: 240px;
+    max-width: 95%;
+    transition: opacity 0.125s ease-in, transform 0.125s ease-in-out;
+}
+
 #dialogAlert p {
     text-align: center;
-    margin: 1em 4em;
+    margin: 1em;
 }
 
 fieldset {
     border: #9E9E9E dashed 1px;
     border-radius: 8px;
+}
+
+nav ul {
+    margin: 0;
+    padding: 0;
+}
+
+nav li {
+    list-style: none;
+    margin: 0.5em 0;
 }
 
 #ic_cloud_download {

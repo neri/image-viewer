@@ -48,7 +48,7 @@ class App {
                 this.dim(-1);
             }
 
-            new SaveAsDialog().dismiss();
+            new MainMenu().dismiss();
 
             const file = e.dataTransfer?.files[0];
             if (file === undefined) {
@@ -70,20 +70,16 @@ class App {
             reader.readAsArrayBuffer(file);
         }, false);
 
-        document.querySelectorAll('.dialogCloseButton').forEach(button => {
-            button.addEventListener('click', () => {
-                Dialog.dismissTop()
-            })
-        });
-
         ($('#menuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            new SaveAsDialog().show();
+            new MainMenu().show();
         });
 
         ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
             if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
                 this.exportImage(canvas);
+            } else {
+                alert("Load the image first.");
             }
         });
 
@@ -107,13 +103,15 @@ class App {
                         if (canvas === null) {
                             return;
                         }
-                        new SaveAsDialog().dismiss();
+                        new MainMenu().dismiss();
                         this.loadImage(name, canvas, result);
                     }
                 });
                 reader.readAsArrayBuffer(file);
             }
         });
+
+        new MainMenu().show();
     }
 
     private isDraging = false;
@@ -206,6 +204,7 @@ class App {
         const lib = this.imgLib;
         const { width, height } = lib;
         if (width <= 0 || height <= 0) {
+            alert("Load the image first.");
             return;
         }
 
@@ -215,7 +214,7 @@ class App {
         }
 
         const data = lib.encode(type);
-        if (data === undefined) {
+        if (!(data instanceof ArrayBuffer)) {
             alert("ENCODE ERROR");
             console.log('encode error');
             return;
@@ -251,33 +250,62 @@ class Dialog {
     private static _lastIndex = 0;
     private static _stack: Dialog[] = [];
 
+    isModal: boolean;
     selector: string;
-    element: HTMLElement;
+    outerElement: HTMLElement;
+    innerElement: HTMLElement;
 
-    constructor(selector: string) {
-        const element = $(selector) as HTMLElement | null;
-        if (element === null) {
-            throw new Error(`selector ${selector} is not found`);
+    constructor(selector: string, isModal: boolean = true) {
+        const outerElement = $(selector) as HTMLElement | null;
+        if (outerElement === null) {
+            throw new Error(`selector (${selector}) is not found`);
+        }
+        const innerElement = $(`${selector} .dialogInner`) as HTMLElement | null;
+        if (innerElement === null) {
+            throw new Error(`selector (${selector} .dialogInner) is not found`);
         }
         this.selector = selector;
-        this.element = element;
+        this.outerElement = outerElement;
+        this.innerElement = innerElement;
+        this.isModal = isModal;
+
+        this.onResetStyle();
+
+        if (this.childElement('.dialogCloseButton') === null) {
+            const close = document.createElement('a');
+            close.classList.add('button', 'dialogCloseButton');
+            close.appendChild(document.createTextNode('\u{2715}'))
+            close.addEventListener('click', () => {
+                Dialog.dismissTop()
+            })
+            innerElement.insertBefore(close, innerElement.firstElementChild as HTMLElement);
+        }
     }
 
-    onclose() { }
+    onResetStyle() {
+        this.innerElement.style.transform = 'translate(-50%, -50%)';
+    }
+
+    onShow() { }
+
+    onClose() { }
 
     show() {
         Dialog.show(this)
     }
     static show(dialog: Dialog) {
-        if (dialog.element.style.display === 'block') return;
-        app.dim(1);
+        if (dialog.outerElement.style.display === 'block') return;
 
         if (Dialog._stack.length == 0) {
             Dialog._lastIndex = 100;
         }
         Dialog._stack.push(dialog)
-        dialog.element.style.zIndex = "" + (++Dialog._lastIndex)
-        dialog.element.style.display = 'block';
+        dialog.outerElement.style.zIndex = "" + (++Dialog._lastIndex)
+        dialog.outerElement.style.display = 'block';
+        dialog.onShow();
+        setTimeout(() => {
+            dialog.outerElement.style.backgroundColor = "rgba(0, 0, 0, 0.25)";
+        }, 10);
     }
     dismiss() {
         Dialog.dismiss(this)
@@ -292,10 +320,13 @@ class Dialog {
             }
         })
     }
-    static _close(dialog: Dialog) {
-        app.dim(-1);
-        dialog.element.style.display = 'none';
-        dialog.onclose()
+    private static _close(dialog: Dialog) {
+        dialog.onClose();
+        dialog.outerElement.style.backgroundColor = "transparent";
+        dialog.onResetStyle();
+        setTimeout(() => {
+            dialog.outerElement.style.display = 'none';
+        }, 300);
     }
     static dismissAll() {
         while (Dialog._stack.length > 0) {
@@ -308,16 +339,28 @@ class Dialog {
             this._close(top);
         }
     }
+
+    childElement(selector: string): HTMLElement | null {
+        return $(`${this.selector} ${selector}`) as HTMLElement | null
+    }
 }
 
-class SaveAsDialog extends Dialog {
+class MainMenu extends Dialog {
     constructor() {
-        super('#dialogSaveAs')
+        super('#dialogMainMenu')
 
         const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
         if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
             app.prepareToExportImage(canvas);
         }
+    }
+    onResetStyle(): void {
+        this.innerElement.style.transform = 'translate(-100%, 0)';
+    }
+    onShow(): void {
+        setTimeout(() => {
+            this.innerElement.style.transform = 'translate(0, 0)';
+        }, 50);
     }
 }
 
@@ -329,6 +372,16 @@ class AlertDialog extends Dialog {
         if (alertMessage !== null) {
             alertMessage.innerText = message;
         }
+    }
+    onResetStyle(): void {
+        this.innerElement.style.opacity = '0.0';
+        this.innerElement.style.transform = 'translate(-50%, -50%) scale(1.25)';
+    }
+    onShow(): void {
+        setTimeout(() => {
+            this.innerElement.style.opacity = '1.0';
+            this.innerElement.style.transform = 'translate(-50%, -50%) scale(1.0)';
+        }, 50);
     }
 }
 
