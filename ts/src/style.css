@@ -43,13 +43,6 @@ a.button:link {
     transition: all 0.5s ease-out;
 }
 
-
-/* .button:hover,
-.buttonActive:hover,
-.buttonDestructive:hover {
-    box-shadow: 1px 1px 1px 1px rgba(0, 0, 0, 0.125);
-} */
-
 .button {
     border: #E0E0E0 solid 1px;
     color: #424242;
@@ -87,14 +80,6 @@ nav li .button {
     transition: filter 0.125s ease-in-out;
 }
 
-#mainCanvasContainer {
-    margin: 0 4px;
-    max-width: 95%;
-    background: #FFF;
-    border: #9E9E9E solid 1px;
-    border-radius: 4px;
-}
-
 #startText {
     display: inline-block;
     text-align: center;
@@ -104,8 +89,21 @@ nav li .button {
 }
 
 #mainCanvas {
+    position: absolute;
     margin: 2px 4px;
     image-rendering: pixelated;
+}
+
+#handleCanvas {
+    position: relative;
+    left: -1px;
+    top: -1px;
+    margin: 2px 4px;
+}
+
+input.coords {
+    text-align: right;
+    width: 4em;
 }
 
 .blur {
@@ -128,6 +126,8 @@ nav li .button {
     box-shadow: 0 5px 15px 1px rgba(0, 0, 0, 0.5);
     top: 50%;
     left: 50%;
+    min-width: 240px;
+    max-width: 95%;
     border-radius: 6px;
     padding: 6px;
     background: #FFF;
@@ -169,8 +169,6 @@ nav li .button {
 }
 
 #dialogAlert .dialogInner {
-    min-width: 240px;
-    max-width: 95%;
     transition: opacity 0.125s ease-in, transform 0.125s ease-in-out;
 }
 
@@ -201,6 +199,16 @@ nav li {
     vertical-align: middle;
     padding: 0;
     background: url('../../ext/material-design-icons/ic_cloud_download_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}
+
+#ic_crop {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_crop_black_18dp.png') no-repeat;
     background-size: 18px 18px;
 }
 

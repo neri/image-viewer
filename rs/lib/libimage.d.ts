@@ -17,3 +17,4 @@ export function output_buffer_get_base(): number;
 export function output_buffer_get_size(): number;
 export function set_image_has_alpha(value: boolean): void;
 export function set_image_info(width: number, height: number): boolean;
+export function crop(x: number, y: number, width: number, height: number): boolean;

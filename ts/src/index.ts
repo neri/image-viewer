@@ -74,21 +74,58 @@ class App {
             new MainMenu().show();
         });
 
+        ($('#cropMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                Dialog.dismissAll();
+                new CropDialog().show();
+            }
+        });
+
+        ($('#cropExecButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const { x, y, width, height } = CropDialog.rect();
+                this.crop(x, y, width, height);
+            }
+        });
+
+        ($('#cropCenterButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            const canvas = this.validCanvas();
+            if (canvas !== null) {
+                CropDialog.setCenter();
+            }
+        });
+
+        for (const selector of '#cropX #cropY #cropWidth #cropHeight'.split(' ')) {
+            ($(selector) as HTMLInputElement | null)?.addEventListener('input', (e) => {
+                CropDialog.updateHandle();
+            });
+        }
+
+        for (const rational of [[1, 1], [2, 1], [3, 2], [4, 3], [16, 9], [1, 2], [2, 3], [3, 4], [9, 16]]) {
+            const numerator = rational[0];
+            const denominator = rational[1];
+            ($(`#cropPreset_${numerator}_${denominator}`) as HTMLButtonElement | null)?.addEventListener('click', () => {
+                CropDialog.setRatio(numerator, denominator)
+            });
+        }
+
         ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
-            if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+            const canvas = this.validCanvas();
+            if (canvas !== null) {
                 this.exportImage(canvas);
-            } else {
-                alert("Load the image first.");
             }
         });
 
         ($('#saveQoiButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            this.exportEncoded(ImageType.Qoi);
+            if (this.validCanvas() !== null) {
+                this.exportEncoded(ImageType.Qoi);
+            }
         });
 
         ($('#saveMpicButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
-            this.exportEncoded(ImageType.Mpic);
+            if (this.validCanvas() !== null) {
+                this.exportEncoded(ImageType.Mpic);
+            }
         });
 
         ($('#fileLocal') as HTMLInputElement | null)?.addEventListener('change', (e) => {
@@ -103,7 +140,6 @@ class App {
                         if (canvas === null) {
                             return;
                         }
-                        new MainMenu().dismiss();
                         this.loadImage(name, canvas, result);
                     }
                 });
@@ -130,6 +166,15 @@ class App {
         }
     }
 
+    getInfo(): { width: number, height: number } {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return { width: 0, height: 0 }
+        }
+        const { width, height } = canvas;
+        return { width, height }
+    }
+
     updateInfo(name: string, width: number, height: number) {
         const titleText = $('#titleText');
         if (titleText === null) {
@@ -150,6 +195,7 @@ class App {
             document.title = title;
         }
         startText.style.display = 'none';
+        CropDialog.update();
     }
 
     loadImage(name: string, canvas: HTMLCanvasElement, blob: ArrayBuffer) {
@@ -166,6 +212,7 @@ class App {
                 ctx.putImageData(imageData, 0, 0);
             }
             this.updateInfo(name, width, height);
+            Dialog.dismissAll();
         } else {
             const img = new Image();
             const imageType = 'image/png';
@@ -176,7 +223,9 @@ class App {
                 canvas.width = width;
                 canvas.height = height;
                 canvas.getContext('2d')?.drawImage(img, 0, 0);
+                this.prepareToExportImage(canvas);
                 this.updateInfo(name, width, height);
+                Dialog.dismissAll();
             }).catch((reason) => {
                 alert("Unsupported file type");
                 console.log('Decode error', reason);
@@ -202,11 +251,6 @@ class App {
 
     exportEncoded(type: ImageType) {
         const lib = this.imgLib;
-        const { width, height } = lib;
-        if (width <= 0 || height <= 0) {
-            alert("Load the image first.");
-            return;
-        }
 
         const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
         if (checkSaveAlpha !== null) {
@@ -240,6 +284,46 @@ class App {
         tag.href = dataUrl;
         tag.download = `${this.baseName}.png`;
         tag.click();
+    }
+
+    validCanvas(): HTMLCanvasElement | null {
+        const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+        if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
+            return canvas;
+        } else {
+            return null;
+        }
+    }
+
+    crop(x: number, y: number, width: number, height: number) {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return;
+        }
+        const info = this.getInfo();
+        const lib = this.imgLib;
+        if (x >= 0 && y >= 0 && width > 0 && height > 0) { } else {
+            alert('Invalid coordinates');
+            return;
+        }
+        if (x >= info.width || x + width > info.width || y >= info.width || y + height > info.height) {
+            alert('Out of Bounds');
+            return;
+        }
+        if (lib.crop(x, y, width, height)) {
+            const { width, height } = lib;
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx !== null) {
+                const imageData = ctx.createImageData(width, height);
+                imageData.data.set(lib.image_buffer);
+                ctx.putImageData(imageData, 0, 0);
+            }
+            this.updateInfo(this.baseName, width, height);
+        } else {
+            alert('Crop failed');
+        }
     }
 }
 
@@ -348,11 +432,6 @@ class Dialog {
 class MainMenu extends Dialog {
     constructor() {
         super('#dialogMainMenu')
-
-        const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
-        if (canvas !== null && canvas.width > 0 && canvas.height > 0) {
-            app.prepareToExportImage(canvas);
-        }
     }
     onResetStyle(): void {
         this.innerElement.style.transform = 'translate(-100%, 0)';
@@ -365,7 +444,7 @@ class MainMenu extends Dialog {
 }
 
 class AlertDialog extends Dialog {
-    constructor(message: string, /* options: undefined = undefined */) {
+    constructor(message: string) {
         super('#dialogAlert');
 
         const alertMessage = ($('#alertMessage') as HTMLElement | null);
@@ -382,6 +461,94 @@ class AlertDialog extends Dialog {
             this.innerElement.style.opacity = '1.0';
             this.innerElement.style.transform = 'translate(-50%, -50%) scale(1.0)';
         }, 50);
+    }
+}
+
+class CropDialog extends Dialog {
+    private static inShow = false;
+    constructor() {
+        super('#dialogCrop');
+    }
+    onShow(): void {
+        CropDialog.inShow = true;
+        CropDialog.update();
+    }
+    onClose(): void {
+        CropDialog.inShow = false;
+        CropDialog.updateHandle();
+    }
+    static setInputElement(selector: string, value: number, max: number, min: number = 0) {
+        const element = $(selector) as HTMLInputElement | null;
+        if (element === null) {
+            return
+        }
+        element.value = String(value);
+        element.step = '1';
+        element.min = String(min);
+        element.max = String(max);
+    }
+    static update() {
+        const { width, height } = app.getInfo();
+        this.setInputElement('#cropX', 0, width);
+        this.setInputElement('#cropY', 0, height);
+        this.setInputElement('#cropWidth', width, width, 1);
+        this.setInputElement('#cropHeight', height, height, 1);
+
+        this.updateHandle();
+    }
+    static updateHandle() {
+        const handleCanvas = $('#handleCanvas') as HTMLCanvasElement | null;
+        if (handleCanvas === null) {
+            return;
+        }
+        if (CropDialog.inShow) {
+            const info = app.getInfo();
+            const frame = this.rect();
+            handleCanvas.width = info.width + 2;
+            handleCanvas.height = info.height + 2;
+            const ctx = handleCanvas.getContext('2d');
+            if (ctx === null) {
+                return
+            }
+            ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(frame.x, frame.y, frame.width + 2, frame.height + 2);
+        } else {
+            handleCanvas.width = 0;
+            handleCanvas.height = 0;
+        }
+    }
+    static setRatio(numerator: number, denominator: number) {
+        const { width, height } = app.getInfo();
+
+        let newDims = [width, height];
+        const h1 = Math.floor(width * denominator / numerator);
+        if (h1 <= height) {
+            newDims = [width, h1];
+        } else {
+            const w1 = Math.floor(height * numerator / denominator);
+            newDims = [w1, height];
+        }
+
+        ($('#cropWidth') as HTMLInputElement).value = newDims[0].toString();
+        ($('#cropHeight') as HTMLInputElement).value = newDims[1].toString();
+        CropDialog.setCenter();
+    }
+    static setCenter() {
+        const info = app.getInfo();
+        const { x, y, width, height } = CropDialog.rect();
+        ($('#cropX') as HTMLInputElement).value = ((info.width - width) >> 1).toString();
+        ($('#cropY') as HTMLInputElement).value = ((info.height - height) >> 1).toString();
+        CropDialog.updateHandle();
+    }
+
+    static rect(): { x: number, y: number, width: number, height: number } {
+        const x = parseInt(($('#cropX') as HTMLInputElement).value) ?? 0;
+        const y = parseInt(($('#cropY') as HTMLInputElement).value) ?? 0;
+        const width = parseInt(($('#cropWidth') as HTMLInputElement).value) ?? 0;
+        const height = parseInt(($('#cropHeight') as HTMLInputElement).value) ?? 0;
+        return { x, y, width, height }
     }
 }
 

@@ -103,12 +103,12 @@ pub fn image_buffer_resize(new_len: usize) -> usize {
 }
 
 #[no_mangle]
-pub fn image_width() -> isize {
+pub fn image_width() -> u32 {
     image_info().width
 }
 
 #[no_mangle]
-pub fn image_height() -> isize {
+pub fn image_height() -> u32 {
     image_info().height
 }
 
@@ -129,8 +129,7 @@ pub fn decode() -> bool {
     match Qoi::decode_alloc(input_buffer) {
         Ok((qoi, buffer)) => {
             let has_alpha = qoi.colors.has_alpha();
-            *image_info() =
-                ImageInfo::new(qoi.width as isize, qoi.height as isize, has_alpha.into());
+            *image_info() = ImageInfo::new(qoi.width, qoi.height, has_alpha.into());
 
             let ob = image_buffer();
             ob.clear();
@@ -151,11 +150,7 @@ pub fn decode() -> bool {
     if let Some(decoder) = mpic::Decoder::<()>::new(input_buffer) {
         let mpic_info = decoder.info();
 
-        *image_info() = ImageInfo::new(
-            mpic_info.width() as isize,
-            mpic_info.height() as isize,
-            Transparency::Opaque,
-        );
+        *image_info() = ImageInfo::new(mpic_info.width(), mpic_info.height(), Transparency::Opaque);
 
         match decoder.decode_rgba() {
             Ok(vec) => {
@@ -172,7 +167,7 @@ pub fn decode() -> bool {
 }
 
 #[no_mangle]
-pub fn set_image_info(width: isize, height: isize) -> bool {
+pub fn set_image_info(width: u32, height: u32) -> bool {
     let mut info = ImageInfo::new(width, height, Transparency::Opaque);
     let ib = image_buffer();
 
@@ -248,10 +243,50 @@ pub fn encode_mpic() -> bool {
     }
 }
 
+#[no_mangle]
+pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
+    let old_info = image_info();
+    if x >= old_info.width
+        || width < 1
+        || x.saturating_add(width) > old_info.width
+        || y >= old_info.height
+        || height < 1
+        || y.saturating_add(height) > old_info.height
+    {
+        return false;
+    }
+
+    let magic_number = 4;
+    let mut ob = Vec::new();
+    if ob
+        .try_reserve(width as usize * height as usize * magic_number)
+        .is_err()
+    {
+        return false;
+    }
+    let offset = (old_info.width as usize * y as usize) * magic_number;
+    let line_offset = x as usize * magic_number;
+    let line_range = line_offset..line_offset + width as usize * magic_number;
+    let Some(ib) = image_buffer().get(offset..) else { return false; };
+    for (line, _) in ib
+        .chunks(old_info.width as usize * magic_number)
+        .zip(0..height)
+    {
+        let Some(line) = line.get(line_range.clone()) else { return false; };
+        ob.extend_from_slice(line);
+    }
+
+    let ib = image_buffer();
+    ib.clear();
+    ib.extend_from_slice(ob.as_slice());
+    ib.shrink_to_fit();
+    set_image_info(width, height)
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct ImageInfo {
-    width: isize,
-    height: isize,
+    width: u32,
+    height: u32,
     transparency: Transparency,
 }
 
@@ -266,7 +301,7 @@ impl ImageInfo {
     }
 
     #[inline]
-    pub const fn new(width: isize, height: isize, transparency: Transparency) -> Self {
+    pub const fn new(width: u32, height: u32, transparency: Transparency) -> Self {
         Self {
             width,
             height,

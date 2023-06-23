@@ -43,6 +43,9 @@ export class ImageLib {
         }
         return undefined;
     }
+    crop(x: number, y: number, width: number, height: number): boolean {
+        return wasm.crop(x, y, width, height)
+    }
     get width(): number {
         return wasm.image_width();
     }
