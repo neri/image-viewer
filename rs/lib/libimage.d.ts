@@ -18,3 +18,6 @@ export function output_buffer_get_size(): number;
 export function set_image_has_alpha(value: boolean): void;
 export function set_image_info(width: number, height: number): boolean;
 export function crop(x: number, y: number, width: number, height: number): boolean;
+export function scale_nn(width: number, height: number): boolean;
+export function scale_linear(width: number, height: number): boolean;
+export function scale_cubic(width: number, height: number): boolean;

@@ -1,6 +1,6 @@
 
 import './style.css';
-import { ImageLib, ImageType } from './libimage';
+import { ImageLib, ImageType, Interpolation } from './libimage';
 
 const $ = (x: string) => document.querySelector(x);
 
@@ -83,8 +83,7 @@ class App {
 
         ($('#cropExecButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                const { x, y, width, height } = CropDialog.rect();
-                this.crop(x, y, width, height);
+                this.performCrop();
             }
         });
 
@@ -107,6 +106,39 @@ class App {
             ($(`#cropPreset_${numerator}_${denominator}`) as HTMLButtonElement | null)?.addEventListener('click', () => {
                 CropDialog.setRatio(numerator, denominator)
             });
+        }
+
+        ($('#scaleMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                Dialog.dismissAll();
+                new ScaleDialog().show();
+            }
+        });
+
+        ($('#scaleWidth') as HTMLInputElement | null)?.addEventListener('input', () => {
+            ScaleDialog.setWidth();
+        });
+
+        ($('#scaleHeight') as HTMLInputElement | null)?.addEventListener('input', () => {
+            ScaleDialog.setHeight();
+        });
+
+        ($('#scalePercent') as HTMLInputElement | null)?.addEventListener('input', () => {
+            ScaleDialog.updatePercent();
+        });
+
+        ($('#scaleExecButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.performScale();
+            }
+        });
+
+        for (const numerator of [1, 2, 4, 8, 16]) {
+            for (const denominator of [1, 2, 4, 8, 16]) {
+                ($(`#scalePreset_${numerator}_${denominator}`) as HTMLButtonElement | null)?.addEventListener('click', () => {
+                    ScaleDialog.setRational(numerator, denominator);
+                });
+            }
         }
 
         ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
@@ -146,6 +178,8 @@ class App {
                 reader.readAsArrayBuffer(file);
             }
         });
+
+        ($('body') as HTMLBodyElement).style.display = 'block';
 
         new MainMenu().show();
     }
@@ -196,6 +230,7 @@ class App {
         }
         startText.style.display = 'none';
         CropDialog.update();
+        ScaleDialog.update();
     }
 
     loadImage(name: string, canvas: HTMLCanvasElement, blob: ArrayBuffer) {
@@ -295,13 +330,31 @@ class App {
         }
     }
 
-    crop(x: number, y: number, width: number, height: number) {
+    reloadImage() {
         const canvas = this.validCanvas();
         if (canvas === null) {
             return;
         }
-        const info = this.getInfo();
         const lib = this.imgLib;
+        const { width, height } = lib;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx !== null) {
+            const imageData = ctx.createImageData(width, height);
+            imageData.data.set(lib.image_buffer);
+            ctx.putImageData(imageData, 0, 0);
+        }
+        this.updateInfo(this.baseName, width, height);
+    }
+
+    performCrop() {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return;
+        }
+        const { x, y, width, height } = CropDialog.rect();
+        const info = this.getInfo();
         if (x >= 0 && y >= 0 && width > 0 && height > 0) { } else {
             alert('Invalid coordinates');
             return;
@@ -310,19 +363,30 @@ class App {
             alert('Out of Bounds');
             return;
         }
-        if (lib.crop(x, y, width, height)) {
-            const { width, height } = lib;
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx !== null) {
-                const imageData = ctx.createImageData(width, height);
-                imageData.data.set(lib.image_buffer);
-                ctx.putImageData(imageData, 0, 0);
-            }
-            this.updateInfo(this.baseName, width, height);
+        if (this.imgLib.crop(x, y, width, height)) {
+            this.reloadImage();
         } else {
             alert('Crop failed');
+        }
+    }
+
+    performScale() {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return;
+        }
+        const width = parseInt(($('#scaleWidth') as HTMLInputElement).value);
+        const height = parseInt(($('#scaleHeight') as HTMLInputElement).value);
+        const info = this.getInfo();
+        if (width > 0 && height > 0) { } else {
+            alert('Invalid size');
+            return;
+        }
+        const interpolation = parseInt(($('#scaleInterpolation') as HTMLSelectElement).value);
+        if (this.imgLib.scale(width, height, interpolation)) {
+            this.reloadImage();
+        } else {
+            alert('Scale failed');
         }
     }
 }
@@ -501,22 +565,19 @@ class CropDialog extends Dialog {
         if (handleCanvas === null) {
             return;
         }
+        const info = app.getInfo();
+        const frame = this.rect();
+        handleCanvas.width = info.width + 2;
+        handleCanvas.height = info.height + 2;
+        const ctx = handleCanvas.getContext('2d');
+        if (ctx === null) {
+            return
+        }
+        ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
         if (CropDialog.inShow) {
-            const info = app.getInfo();
-            const frame = this.rect();
-            handleCanvas.width = info.width + 2;
-            handleCanvas.height = info.height + 2;
-            const ctx = handleCanvas.getContext('2d');
-            if (ctx === null) {
-                return
-            }
-            ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
             ctx.strokeStyle = "black";
             ctx.lineWidth = 1;
             ctx.strokeRect(frame.x, frame.y, frame.width + 2, frame.height + 2);
-        } else {
-            handleCanvas.width = 0;
-            handleCanvas.height = 0;
         }
     }
     static setRatio(numerator: number, denominator: number) {
@@ -550,6 +611,69 @@ class CropDialog extends Dialog {
         const height = parseInt(($('#cropHeight') as HTMLInputElement).value) ?? 0;
         return { x, y, width, height }
     }
+}
+
+class ScaleDialog extends Dialog {
+    private static inShow = false;
+    constructor() {
+        super('#dialogScale');
+    }
+    onShow(): void {
+        ScaleDialog.inShow = true;
+        ScaleDialog.update();
+    }
+    onClose(): void {
+        ScaleDialog.inShow = false;
+    }
+    static setInputElement(selector: string, value: number, max: number, min: number = 0) {
+        const element = $(selector) as HTMLInputElement | null;
+        if (element === null) {
+            return
+        }
+        element.value = String(value);
+        element.step = '1';
+        element.min = String(min);
+        element.max = String(max);
+    }
+    static update() {
+        const { width, height } = app.getInfo();
+        this.setInputElement('#scaleWidth', width, width * 100, 1);
+        this.setInputElement('#scaleHeight', height, height * 100, 1);
+        ($('#scalePercent') as HTMLInputElement).value = '100';
+    }
+    static setRational(numerator: number, denominator: number) {
+        const percent = Math.round(numerator * 10000 / denominator) / 100;
+        ($('#scalePercent') as HTMLInputElement).value = percent.toString();
+        this.setScale(numerator, denominator);
+    }
+    static updatePercent() {
+        const percent = Math.round(100 * Number(($('#scalePercent') as HTMLInputElement).value));
+        this.setScale(percent, 10000);
+    }
+    static setScale(numerator: number, denominator: number) {
+        const { width, height } = app.getInfo();
+        const w = Math.ceil(width * numerator / denominator);
+        const h = Math.ceil(height * numerator / denominator);
+        ($('#scaleWidth') as HTMLInputElement).value = String(w);
+        ($('#scaleHeight') as HTMLInputElement).value = String(h);
+    }
+    static setWidth() {
+        const { width, height } = app.getInfo();
+        const w = parseInt(($('#scaleWidth') as HTMLInputElement).value);
+        const h = Math.ceil(w * height / width);
+        ($('#scaleHeight') as HTMLInputElement).value = String(h);
+        const percent = Math.ceil(1000 * w / width) / 10;
+        ($('#scalePercent') as HTMLInputElement).value = percent.toString();
+    }
+    static setHeight() {
+        const { width, height } = app.getInfo();
+        const h = parseInt(($('#scaleHeight') as HTMLInputElement).value);
+        const w = Math.ceil(h * width / height);
+        ($('#scaleWidth') as HTMLInputElement).value = String(w);
+        const percent = Math.ceil(1000 * h / height) / 10;
+        ($('#scalePercent') as HTMLInputElement).value = percent.toString();
+    }
+
 }
 
 

@@ -8,7 +8,7 @@
     <title>Online Image Viewer</title>
 </head>
 
-<body>
+<body style="display: none;">
     <header>
         <a id="menuButton"><span id="ic_menu_white">&nbsp;</span></a>
         <b id="titleText">Online Image Viewer</b>
@@ -33,31 +33,41 @@
             <ul>
                 <li>
                     <label>
-                        <a id="loadButton" class="button"><span id="ic_folder_open">&nbsp;</span>
-                            Open...</a>
+                        <a id="loadButton" class="button">
+                            <span id="ic_folder_open">&nbsp;</span>
+                            Open...
+                        </a>
                         <input id="fileLocal" type="file" style="display: none;">
                     </label>
                 </li>
                 <li>
-                    <a id="cropMenuButton" class="button"><span id="ic_crop">&nbsp;</span>
-                        Crop...</a>
+                    <a id="cropMenuButton" class="button">
+                        <span id="ic_crop">&nbsp;</span>
+                        Resize (Crop)...
+                    </a>
+                </li>
+                <li>
+                    <a id="scaleMenuButton" class="button">
+                        <span id="ic_transform">&nbsp;</span>
+                        Resize (Scale)...
+                    </a>
                 </li>
                 <li>
                     <fieldset>
-                        <legend><span id="ic_cloud_download">&nbsp;</span> Save as...</legend>
+                        <legend><span id="ic_cloud_download">&nbsp;</span> Export as...</legend>
                         <ul>
                             <li>
-                                <a id="saveQoiButton" class="button">QOI</a>
+                                <a id="saveQoiButton" class="button">.QOI</a>
                                 <label>&nbsp;
                                     <input id="checkSaveAlpha" type="checkbox">
                                     Alpha Channel
                                 </label>
                             </li>
                             <li>
-                                <a id="saveMpicButton" class="button">MPIC</a>
+                                <a id="saveMpicButton" class="button">.MPIC</a>
                             </li>
                             <li>
-                                <a id="savePngButton" class="button">PNG</a>
+                                <a id="savePngButton" class="button">.PNG</a>
                             </li>
                         </ul>
                     </fieldset>
@@ -74,7 +84,7 @@
         <div class="dialogInner">
             <h2>
                 <span id="ic_crop">&nbsp;</span>
-                Crop
+                Resize (Crop)
             </h2>
             <fieldset>
                 <legend>Size</legend>
@@ -114,6 +124,52 @@
         </div>
     </div>
 
+    <div id="dialogScale" class="dialogOuter">
+        <div class="dialogInner">
+            <h2>
+                <span id="ic_transform">&nbsp;</span>
+                Resize (Scale)
+            </h2>
+            <fieldset>
+                <legend>Size</legend>
+                <label>
+                    width:
+                    <input id="scaleWidth" type="number" inputmode="numeric" class="coords">
+                </label>
+                <label>
+                    height:
+                    <input id="scaleHeight" type="number" inputmode="numeric" class="coords">
+                </label>
+            </fieldset>
+            <p>
+                <label>
+                    percent:
+                    <input id="scalePercent" type="number" inputmode="numeric" class="scale" min="1" step="1">
+                </label>
+            </p>
+            <p>
+                <label>
+                    Interpolation:
+                    <select id="scaleInterpolation">
+                        <option value="0">nearest neighbor</option>
+                        <option value="1">bilinear</option>
+                        <option value="2">bicubic</option>
+                    </select>
+                </label>
+            </p>
+            <fieldset>
+                <legend>Preset</legend>
+                <a class="button" id="scalePreset_8_1">x8</a>
+                <a class="button" id="scalePreset_4_1">x4</a>
+                <a class="button" id="scalePreset_2_1">x2</a>
+                <a class="button" id="scalePreset_1_2">1/2</a>
+                <a class="button" id="scalePreset_1_4">1/4</a>
+                <a class="button" id="scalePreset_1_8">1/8</a>
+            </fieldset>
+            <hr>
+            <a class="buttonActive" id="scaleExecButton">Scale</a>
+        </div>
+    </div>
 
 </body>
 

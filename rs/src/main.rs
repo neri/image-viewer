@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![deny(unsafe_op_in_unsafe_fn)]
 
 use alloc::vec::Vec;
 use core::cell::UnsafeCell;
@@ -243,6 +244,7 @@ pub fn encode_mpic() -> bool {
     }
 }
 
+/// Crop an image
 #[no_mangle]
 pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
     let old_info = image_info();
@@ -274,6 +276,229 @@ pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
     {
         let Some(line) = line.get(line_range.clone()) else { return false; };
         ob.extend_from_slice(line);
+    }
+
+    let ib = image_buffer();
+    ib.clear();
+    ib.extend_from_slice(ob.as_slice());
+    ib.shrink_to_fit();
+    set_image_info(width, height)
+}
+
+fn _get_pixel(x: u32, y: u32) -> [u8; 4] {
+    let info = image_info();
+    let offset = (x as usize).wrapping_add((y as usize).wrapping_mul(info.width as usize)) << 2;
+    image_buffer()
+        .get(offset..offset.wrapping_add(4))
+        .and_then(|v| v.try_into().map(|v: &[u8; 4]| *v).ok())
+        .unwrap_or([0, 0, 0, 0])
+}
+
+/// Resize a image using nearest neighbor interpolation
+#[no_mangle]
+pub fn scale_nn(width: u32, height: u32) -> bool {
+    let old_info = image_info();
+    if old_info.width == width && old_info.height == height {
+        return true;
+    }
+    if width < 1 || height < 1 {
+        return false;
+    }
+
+    let magic_number = 4;
+    let mut ob = Vec::new();
+    if ob
+        .try_reserve(width as usize * height as usize * magic_number)
+        .is_err()
+    {
+        return false;
+    }
+
+    let sw = old_info.width as f64;
+    let sh = old_info.height as f64;
+
+    let x_ratio = width as f64;
+    let y_ratio = height as f64;
+
+    for y in 0..height {
+        let vy = y as f64 / y_ratio;
+        for x in 0..width {
+            let vx = x as f64 / x_ratio;
+            let new_pixel = _get_pixel((vx * sw) as u32, (vy * sh) as u32);
+            ob.extend_from_slice(&new_pixel);
+        }
+    }
+
+    let ib = image_buffer();
+    ib.clear();
+    ib.extend_from_slice(ob.as_slice());
+    ib.shrink_to_fit();
+    set_image_info(width, height)
+}
+
+/// Resize a image using bilinear interpolation
+#[no_mangle]
+pub fn scale_linear(width: u32, height: u32) -> bool {
+    scale_main(width, height, |vx, vy, sw, sh| {
+        let vx = (vx * sw - 0.5).max(0.0);
+        let vy = (vy * sh - 0.5).max(0.0);
+
+        let lx = vx.floor();
+        let ly = vy.floor();
+        let x_frac = vx - lx;
+        let y_frac = vy - ly;
+
+        let hx = (lx + 1.0).floor().min(sw - 1.0);
+        let hy = (ly + 1.0).floor().min(sh - 1.0);
+
+        let vll = _get_pixel(lx as u32, ly as u32);
+        let vlh = _get_pixel(lx as u32, hy as u32);
+        let vhl = _get_pixel(hx as u32, ly as u32);
+        let vhh = _get_pixel(hx as u32, hy as u32);
+
+        let mut result = [0u8; 4];
+        for i in 0..4 {
+            let a = vll[i] as f64;
+            let b = vhl[i] as f64;
+            let c = vlh[i] as f64;
+            let d = vhh[i] as f64;
+
+            let q = a * (1.0 - x_frac) * (1.0 - y_frac)
+                + b * (x_frac) * (1.0 - y_frac)
+                + c * (y_frac) * (1.0 - x_frac)
+                + d * (x_frac * y_frac);
+
+            result[i] = q.clamp(0.0, 255.0) as u8;
+        }
+
+        result
+    })
+}
+
+/// Resize a image using bicubic interpolation
+#[no_mangle]
+pub fn scale_cubic(width: u32, height: u32) -> bool {
+    scale_main(width, height, |vx, vy, sw, sh| {
+        let vx = vx * sw - 0.5;
+        let vy = vy * sh - 0.5;
+
+        let lx = vx.floor();
+        let ly = vy.floor();
+        let x_frac = vx - lx;
+        let y_frac = vy - ly;
+
+        let lxm1 = (lx - 1.0).clamp(0.0, sw - 1.0) as u32;
+        let lx_0 = (lx).clamp(0.0, sw - 1.0) as u32;
+        let lxp1 = (lx + 1.0).clamp(0.0, sw - 1.0) as u32;
+        let lxp2 = (lx + 2.0).clamp(0.0, sw - 1.0) as u32;
+
+        let lym1 = (ly - 1.0).clamp(0.0, sh - 1.0) as u32;
+        let ly_0 = (ly).clamp(0.0, sh - 1.0) as u32;
+        let lyp1 = (ly + 1.0).clamp(0.0, sh - 1.0) as u32;
+        let lyp2 = (ly + 2.0).clamp(0.0, sh - 1.0) as u32;
+
+        let p00 = _get_pixel(lxm1, lym1);
+        let p10 = _get_pixel(lx_0, lym1);
+        let p20 = _get_pixel(lxp1, lym1);
+        let p30 = _get_pixel(lxp2, lym1);
+
+        let p01 = _get_pixel(lxm1, ly_0);
+        let p11 = _get_pixel(lx_0, ly_0);
+        let p21 = _get_pixel(lxp1, ly_0);
+        let p31 = _get_pixel(lxp2, ly_0);
+
+        let p02 = _get_pixel(lxm1, lyp1);
+        let p12 = _get_pixel(lx_0, lyp1);
+        let p22 = _get_pixel(lxp1, lyp1);
+        let p32 = _get_pixel(lxp2, lyp1);
+
+        let p03 = _get_pixel(lxm1, lyp2);
+        let p13 = _get_pixel(lx_0, lyp2);
+        let p23 = _get_pixel(lxp1, lyp2);
+        let p33 = _get_pixel(lxp2, lyp2);
+
+        let mut result = [0u8; 4];
+        #[inline]
+        fn cubic_hermite(a: f64, b: f64, c: f64, d: f64, t: f64) -> f64 {
+            let c0 = -a / 2.0 + (3.0 * b) / 2.0 - (3.0 * c) / 2.0 + d / 2.0;
+            let c1 = a - (5.0 * b) / 2.0 + 2.0 * c - d / 2.0;
+            let c2 = -a / 2.0 + c / 2.0;
+
+            c0 * t * t * t + c1 * t * t + c2 * t + b
+        }
+        for i in 0..4 {
+            let c0 = cubic_hermite(
+                p00[i] as f64,
+                p10[i] as f64,
+                p20[i] as f64,
+                p30[i] as f64,
+                x_frac,
+            );
+            let c1 = cubic_hermite(
+                p01[i] as f64,
+                p11[i] as f64,
+                p21[i] as f64,
+                p31[i] as f64,
+                x_frac,
+            );
+            let c2 = cubic_hermite(
+                p02[i] as f64,
+                p12[i] as f64,
+                p22[i] as f64,
+                p32[i] as f64,
+                x_frac,
+            );
+            let c3 = cubic_hermite(
+                p03[i] as f64,
+                p13[i] as f64,
+                p23[i] as f64,
+                p33[i] as f64,
+                x_frac,
+            );
+            let q = cubic_hermite(c0, c1, c2, c3, y_frac);
+
+            result[i] = q.clamp(0.0, 255.0) as u8;
+        }
+
+        result
+    })
+}
+
+#[inline]
+fn scale_main<F>(width: u32, height: u32, kernel: F) -> bool
+where
+    F: Fn(f64, f64, f64, f64) -> [u8; 4],
+{
+    let old_info = image_info();
+    if old_info.width == width && old_info.height == height {
+        return true;
+    }
+    if width < 1 || height < 1 {
+        return false;
+    }
+
+    let magic_number = 4;
+    let mut ob = Vec::new();
+    if ob
+        .try_reserve(width as usize * height as usize * magic_number)
+        .is_err()
+    {
+        return false;
+    }
+
+    let sw = old_info.width as f64;
+    let sh = old_info.height as f64;
+
+    let x_ratio = width as f64 - 1.0;
+    let y_ratio = height as f64 - 1.0;
+
+    for y in 0..height {
+        let vy = y as f64 / y_ratio;
+        for x in 0..width {
+            let vx = x as f64 / x_ratio;
+            let new_pixel = kernel(vx, vy, sw, sh);
+            ob.extend_from_slice(&new_pixel);
+        }
     }
 
     let ib = image_buffer();

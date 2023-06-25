@@ -13,8 +13,9 @@ WASM_STRIP	= $(TOOLS)wasm-strip/
 all: $(LIB_QOI) $(TS_MAIN)
 
 clean:
+	(cd $(RS_SRC); cargo clean)
 	-rm $(LIB_QOI) $(TS_MAIN)
-	-rm -rf ./target $(TS_DIST)
+	-rm -rf $(TS_DIST)
 
 $(LIB_QOI): $(RS_SRC)src/*.rs
 	(cd $(RS_SRC); cargo build --release)
