@@ -87,6 +87,10 @@ class App {
             }
         });
 
+        ($('#cropResetButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            this.snapshotRestore();
+        });
+
         ($('#cropCenterButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             const canvas = this.validCanvas();
             if (canvas !== null) {
@@ -131,6 +135,10 @@ class App {
             if (this.validCanvas() !== null) {
                 this.performScale();
             }
+        });
+
+        ($('#scaleResetButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            this.snapshotRestore();
         });
 
         for (const numerator of [1, 2, 4, 8, 16]) {
@@ -258,29 +266,13 @@ class App {
                 canvas.width = width;
                 canvas.height = height;
                 canvas.getContext('2d')?.drawImage(img, 0, 0);
-                this.prepareToExportImage(canvas);
                 this.updateInfo(name, width, height);
                 Dialog.dismissAll();
+                this.reflectCanvasToLib(canvas);
             }).catch((reason) => {
                 alert("Unsupported file type");
                 console.log('Decode error', reason);
             });
-        }
-    }
-
-    prepareToExportImage(canvas: HTMLCanvasElement) {
-        const lib = this.imgLib;
-        const { width, height } = canvas;
-        const ctx = canvas.getContext('2d');
-        if (ctx === null) {
-            return;
-        }
-        const imgData = ctx.getImageData(0, 0, width, height);
-        lib.set_image_buffer(imgData.data, width, height);
-
-        const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
-        if (checkSaveAlpha !== null) {
-            checkSaveAlpha.checked = lib.image_has_alpha;
         }
     }
 
@@ -330,7 +322,23 @@ class App {
         }
     }
 
-    reloadImage() {
+    reflectCanvasToLib(canvas: HTMLCanvasElement) {
+        const lib = this.imgLib;
+        const { width, height } = canvas;
+        const ctx = canvas.getContext('2d');
+        if (ctx === null) {
+            return;
+        }
+        const imgData = ctx.getImageData(0, 0, width, height);
+        lib.set_image_buffer(imgData.data, width, height);
+
+        const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
+        if (checkSaveAlpha !== null) {
+            checkSaveAlpha.checked = lib.image_has_alpha;
+        }
+    }
+
+    reflectLibToCanvas() {
         const canvas = this.validCanvas();
         if (canvas === null) {
             return;
@@ -364,7 +372,7 @@ class App {
             return;
         }
         if (this.imgLib.crop(x, y, width, height)) {
-            this.reloadImage();
+            this.reflectLibToCanvas();
         } else {
             alert('Crop failed');
         }
@@ -384,10 +392,18 @@ class App {
         }
         const interpolation = parseInt(($('#scaleInterpolation') as HTMLSelectElement).value);
         if (this.imgLib.scale(width, height, interpolation)) {
-            this.reloadImage();
+            this.reflectLibToCanvas();
         } else {
             alert('Scale failed');
         }
+    }
+
+    snapshotSave() {
+        this.imgLib.snapshotSave();
+    }
+    snapshotRestore() {
+        this.imgLib.snapshotRestore();
+        this.reflectLibToCanvas();
     }
 }
 
@@ -534,6 +550,7 @@ class CropDialog extends Dialog {
         super('#dialogCrop');
     }
     onShow(): void {
+        app.snapshotSave();
         CropDialog.inShow = true;
         CropDialog.update();
     }
@@ -619,6 +636,7 @@ class ScaleDialog extends Dialog {
         super('#dialogScale');
     }
     onShow(): void {
+        app.snapshotSave();
         ScaleDialog.inShow = true;
         ScaleDialog.update();
     }

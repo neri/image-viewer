@@ -3,7 +3,10 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use alloc::vec::Vec;
-use core::cell::UnsafeCell;
+use core::{
+    cell::{RefCell, UnsafeCell},
+    ops::DerefMut,
+};
 use rapid_qoi::{Colors, Qoi};
 
 extern crate alloc;
@@ -12,6 +15,9 @@ static mut INPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut OUTPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut IMAGE_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut IMAGE_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::empty());
+
+static mut SNAPSHOT_INFO: RefCell<Option<ImageInfo>> = RefCell::new(None);
+static mut SNAPSHOT_IMAGE: RefCell<Vec<u8>> = RefCell::new(Vec::new());
 
 #[inline]
 fn image_info<'a>() -> &'a mut ImageInfo {
@@ -33,6 +39,16 @@ fn input_buffer<'a>() -> &'a mut Vec<u8> {
     unsafe { INPUT_BUFFER.get_mut() }
 }
 
+#[inline]
+fn snapshot_info<'a>() -> impl DerefMut<Target = Option<ImageInfo>> + 'a {
+    unsafe { SNAPSHOT_INFO.borrow_mut() }
+}
+
+#[inline]
+fn snapshot_image_buffer<'a>() -> impl DerefMut<Target = Vec<u8>> + 'a {
+    unsafe { SNAPSHOT_IMAGE.borrow_mut() }
+}
+
 #[no_mangle]
 pub fn cleanup() {
     let buffer = input_buffer();
@@ -46,6 +62,7 @@ pub fn cleanup() {
     output_buffer_cleanup();
 
     *image_info() = ImageInfo::default();
+    snapshot_clear();
 }
 
 #[no_mangle]
@@ -131,6 +148,7 @@ pub fn decode() -> bool {
         Ok((qoi, buffer)) => {
             let has_alpha = qoi.colors.has_alpha();
             *image_info() = ImageInfo::new(qoi.width, qoi.height, has_alpha.into());
+            snapshot_clear();
 
             let ob = image_buffer();
             ob.clear();
@@ -150,8 +168,8 @@ pub fn decode() -> bool {
 
     if let Some(decoder) = mpic::Decoder::<()>::new(input_buffer) {
         let mpic_info = decoder.info();
-
         *image_info() = ImageInfo::new(mpic_info.width(), mpic_info.height(), Transparency::Opaque);
+        snapshot_clear();
 
         match decoder.decode_rgba() {
             Ok(vec) => {
@@ -169,6 +187,11 @@ pub fn decode() -> bool {
 
 #[no_mangle]
 pub fn set_image_info(width: u32, height: u32) -> bool {
+    snapshot_clear();
+    _update_image_info(width, height)
+}
+
+fn _update_image_info(width: u32, height: u32) -> bool {
     let mut info = ImageInfo::new(width, height, Transparency::Opaque);
     let ib = image_buffer();
 
@@ -282,7 +305,7 @@ pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
     ib.clear();
     ib.extend_from_slice(ob.as_slice());
     ib.shrink_to_fit();
-    set_image_info(width, height)
+    _update_image_info(width, height)
 }
 
 fn _get_pixel(x: u32, y: u32) -> [u8; 4] {
@@ -316,15 +339,14 @@ pub fn scale_nn(width: u32, height: u32) -> bool {
 
     let sw = old_info.width as f64;
     let sh = old_info.height as f64;
-
-    let x_ratio = width as f64;
-    let y_ratio = height as f64;
+    let dw = width as f64;
+    let dh = height as f64;
 
     for y in 0..height {
-        let vy = y as f64 / y_ratio;
+        let vy = y as f64 * sh / dh;
         for x in 0..width {
-            let vx = x as f64 / x_ratio;
-            let new_pixel = _get_pixel((vx * sw) as u32, (vy * sh) as u32);
+            let vx = x as f64 * sw / dw;
+            let new_pixel = _get_pixel(vx.floor() as u32, vy.floor() as u32);
             ob.extend_from_slice(&new_pixel);
         }
     }
@@ -333,15 +355,15 @@ pub fn scale_nn(width: u32, height: u32) -> bool {
     ib.clear();
     ib.extend_from_slice(ob.as_slice());
     ib.shrink_to_fit();
-    set_image_info(width, height)
+    _update_image_info(width, height)
 }
 
 /// Resize a image using bilinear interpolation
 #[no_mangle]
 pub fn scale_linear(width: u32, height: u32) -> bool {
     scale_main(width, height, |vx, vy, sw, sh| {
-        let vx = (vx * sw - 0.5).max(0.0);
-        let vy = (vy * sh - 0.5).max(0.0);
+        let vx = (vx - 0.5).max(0.0);
+        let vy = (vy - 0.5).max(0.0);
 
         let lx = vx.floor();
         let ly = vy.floor();
@@ -379,8 +401,8 @@ pub fn scale_linear(width: u32, height: u32) -> bool {
 #[no_mangle]
 pub fn scale_cubic(width: u32, height: u32) -> bool {
     scale_main(width, height, |vx, vy, sw, sh| {
-        let vx = vx * sw - 0.5;
-        let vy = vy * sh - 0.5;
+        let vx = vx - 0.5;
+        let vy = vy - 0.5;
 
         let lx = vx.floor();
         let ly = vy.floor();
@@ -488,14 +510,13 @@ where
 
     let sw = old_info.width as f64;
     let sh = old_info.height as f64;
-
-    let x_ratio = width as f64 - 1.0;
-    let y_ratio = height as f64 - 1.0;
+    let dw = width as f64 - 1.0;
+    let dh = height as f64 - 1.0;
 
     for y in 0..height {
-        let vy = y as f64 / y_ratio;
+        let vy = y as f64 * sh / dh;
         for x in 0..width {
-            let vx = x as f64 / x_ratio;
+            let vx = x as f64 * sw / dw;
             let new_pixel = kernel(vx, vy, sw, sh);
             ob.extend_from_slice(&new_pixel);
         }
@@ -505,7 +526,42 @@ where
     ib.clear();
     ib.extend_from_slice(ob.as_slice());
     ib.shrink_to_fit();
-    set_image_info(width, height)
+    _update_image_info(width, height)
+}
+
+#[no_mangle]
+pub fn snapshot_clear() {
+    snapshot_info().take();
+
+    let mut sib = snapshot_image_buffer();
+    sib.clear();
+    sib.shrink_to_fit();
+}
+
+#[no_mangle]
+pub fn snapshot_save() {
+    let info = image_info();
+    snapshot_info().replace(*info);
+
+    let ib = image_buffer();
+    let mut sib = snapshot_image_buffer();
+    sib.clear();
+    sib.extend_from_slice(ib.as_slice());
+}
+
+#[no_mangle]
+pub fn snapshot_restore() -> bool {
+    let Some(info) = *snapshot_info() else {
+        return false;
+    };
+    *image_info() = info;
+
+    let ib = image_buffer();
+    let sib = snapshot_image_buffer();
+    ib.clear();
+    ib.extend_from_slice(sib.as_slice());
+
+    true
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]

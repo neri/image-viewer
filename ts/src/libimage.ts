@@ -60,7 +60,8 @@ export class ImageLib {
                 return wasm.scale_linear(width, height);
             case Interpolation.BiCubic:
                 return wasm.scale_cubic(width, height);
-            default: return false;
+            default:
+                return false;
         }
     }
     get width(): number {
@@ -97,5 +98,10 @@ export class ImageLib {
             base + wasm.output_buffer_get_size()
         );
     }
+    snapshotSave() {
+        wasm.snapshot_save();
+    }
+    snapshotRestore(): boolean {
+        return wasm.snapshot_restore();
+    }
 }
-
