@@ -23,14 +23,14 @@ export class ImageLib {
         const base = wasm.input_buffer_resize(bytes.length);
         const memory = new Uint8Array(wasm.memory.buffer);
         memory.set(bytes, base);
-        return wasm.decode();
+        return wasm.decode() != 0;
     }
     set_image_buffer(buffer: ArrayBuffer, width: number, height: number): boolean {
         const bytes = new Uint8Array(buffer);
         const base = wasm.image_buffer_resize(bytes.length);
         const memory = new Uint8Array(wasm.memory.buffer);
         memory.set(bytes, base);
-        return wasm.set_image_info(width, height);
+        return wasm.set_image_info(width, height) != 0;
     }
     encode(type: ImageType): ArrayBuffer | undefined {
         switch (type) {
@@ -50,16 +50,16 @@ export class ImageLib {
         return undefined;
     }
     crop(x: number, y: number, width: number, height: number): boolean {
-        return wasm.crop(x, y, width, height)
+        return wasm.crop(x, y, width, height) != 0
     }
     scale(width: number, height: number, interpolation: Interpolation): boolean {
         switch (interpolation) {
             case Interpolation.NearstNeighbor:
-                return wasm.scale_nn(width, height);
+                return wasm.scale_nn(width, height) != 0;
             case Interpolation.BiLinear:
-                return wasm.scale_linear(width, height);
+                return wasm.scale_linear(width, height) != 0;
             case Interpolation.BiCubic:
-                return wasm.scale_cubic(width, height);
+                return wasm.scale_cubic(width, height) != 0;
             default:
                 return false;
         }
@@ -71,7 +71,7 @@ export class ImageLib {
         return wasm.image_height();
     }
     get image_has_alpha(): boolean {
-        return wasm.image_has_alpha();
+        return wasm.image_has_alpha() != 0;
     }
     set image_has_alpha(value: boolean) {
         wasm.set_image_has_alpha(value);
@@ -102,6 +102,6 @@ export class ImageLib {
         wasm.snapshot_save();
     }
     snapshotRestore(): boolean {
-        return wasm.snapshot_restore();
+        return wasm.snapshot_restore() != 0;
     }
 }

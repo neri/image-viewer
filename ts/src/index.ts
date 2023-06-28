@@ -16,10 +16,7 @@ class App {
     }
 
     onload() {
-        const html = $('html') as HTMLElement | null;
-        if (html === null) {
-            return;
-        }
+        const html = $('html') as HTMLElement;
 
         html.addEventListener('dragover', (e) => {
             e.stopPropagation();
@@ -76,6 +73,7 @@ class App {
 
         ($('#cropMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
+                this.snapshotSave();
                 Dialog.dismissAll();
                 new CropDialog().show();
             }
@@ -114,6 +112,7 @@ class App {
 
         ($('#scaleMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
+                this.snapshotSave();
                 Dialog.dismissAll();
                 new ScaleDialog().show();
             }
@@ -293,10 +292,7 @@ class App {
 
         const blob = new Blob([data], { type: "application/octet-stream" });
         const dataUrl = URL.createObjectURL(blob);
-        const tag = document.createElement('a') as HTMLAnchorElement | null;
-        if (tag === null) {
-            return;
-        }
+        const tag = document.createElement('a') as HTMLAnchorElement;
         tag.href = dataUrl;
         tag.download = `${this.baseName}.${type.toString()}`;
         tag.click();
@@ -304,10 +300,7 @@ class App {
 
     exportImage(canvas: HTMLCanvasElement) {
         const dataUrl = canvas.toDataURL('image/png');
-        const tag = document.createElement('a') as HTMLAnchorElement | null;
-        if (tag === null) {
-            return;
-        }
+        const tag = document.createElement('a') as HTMLAnchorElement;
         tag.href = dataUrl;
         tag.download = `${this.baseName}.png`;
         tag.click();
@@ -550,7 +543,6 @@ class CropDialog extends Dialog {
         super('#dialogCrop');
     }
     onShow(): void {
-        app.snapshotSave();
         CropDialog.inShow = true;
         CropDialog.update();
     }
@@ -636,7 +628,6 @@ class ScaleDialog extends Dialog {
         super('#dialogScale');
     }
     onShow(): void {
-        app.snapshotSave();
         ScaleDialog.inShow = true;
         ScaleDialog.update();
     }
