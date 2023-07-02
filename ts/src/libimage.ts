@@ -5,12 +5,6 @@ export enum ImageType {
     Mpic = "mpic",
 }
 
-export enum Interpolation {
-    NearstNeighbor,
-    BiLinear,
-    BiCubic,
-}
-
 /**
  * Wasm Image Library Wrapper
  */
@@ -52,17 +46,8 @@ export class ImageLib {
     crop(x: number, y: number, width: number, height: number): boolean {
         return wasm.crop(x, y, width, height) != 0
     }
-    scale(width: number, height: number, interpolation: Interpolation): boolean {
-        switch (interpolation) {
-            case Interpolation.NearstNeighbor:
-                return wasm.scale_nn(width, height) != 0;
-            case Interpolation.BiLinear:
-                return wasm.scale_linear(width, height) != 0;
-            case Interpolation.BiCubic:
-                return wasm.scale_cubic(width, height) != 0;
-            default:
-                return false;
-        }
+    scale(width: number, height: number, scaleMode: wasm.ScaleMode): boolean {
+        return wasm.scale(width, height, scaleMode) != 0;
     }
     get width(): number {
         return wasm.image_width();

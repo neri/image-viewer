@@ -16,11 +16,15 @@ export function input_buffer_resize(new_len: number): number;
 export function output_buffer_cleanup(): void;
 export function output_buffer_get_base(): number;
 export function output_buffer_get_size(): number;
-export function scale_cubic(width: number, height: number): number;
-export function scale_linear(width: number, height: number): number;
-export function scale_nn(width: number, height: number): number;
+export function scale(width: number, height: number, mode: ScaleMode): number;
 export function set_image_has_alpha(value: boolean): void;
 export function set_image_info(width: number, height: number): number;
 export function snapshot_clear();
 export function snapshot_restore(): number;
 export function snapshot_save();
+
+export enum ScaleMode {
+    NearstNeighbor,
+    Bilinear,
+    Bicubic,
+}

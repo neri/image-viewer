@@ -7,6 +7,7 @@ use core::{
     cell::{RefCell, UnsafeCell},
     ops::DerefMut,
 };
+use mpic;
 use rapid_qoi::{Colors, Qoi};
 
 extern crate alloc;
@@ -317,9 +318,17 @@ fn _get_pixel(x: u32, y: u32) -> [u8; 4] {
         .unwrap_or([0, 0, 0, 0])
 }
 
-/// Resize a image using nearest neighbor interpolation
+#[non_exhaustive]
+// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ScaleMode {
+    NearstNeighbor,
+    Bilinear,
+    Bicubic,
+}
+
+/// Resize a image
 #[no_mangle]
-pub fn scale_nn(width: u32, height: u32) -> bool {
+pub fn scale(width: u32, height: u32, mode: ScaleMode) -> bool {
     let old_info = image_info();
     if old_info.width == width && old_info.height == height {
         return true;
@@ -337,6 +346,23 @@ pub fn scale_nn(width: u32, height: u32) -> bool {
         return false;
     }
 
+    match mode {
+        ScaleMode::NearstNeighbor => scale_nn(&mut ob, width, height),
+        ScaleMode::Bilinear => scale_linear(&mut ob, width, height),
+        ScaleMode::Bicubic => scale_cubic(&mut ob, width, height),
+    }
+
+    let ib = image_buffer();
+    ib.clear();
+    ib.extend_from_slice(ob.as_slice());
+    ib.shrink_to_fit();
+    _update_image_info(width, height)
+}
+
+/// Resize a image using nearest neighbor interpolation
+pub fn scale_nn(ob: &mut Vec<u8>, width: u32, height: u32) {
+    let old_info = image_info();
+
     let sw = old_info.width as f64;
     let sh = old_info.height as f64;
     let dw = width as f64;
@@ -350,18 +376,33 @@ pub fn scale_nn(width: u32, height: u32) -> bool {
             ob.extend_from_slice(&new_pixel);
         }
     }
+}
 
-    let ib = image_buffer();
-    ib.clear();
-    ib.extend_from_slice(ob.as_slice());
-    ib.shrink_to_fit();
-    _update_image_info(width, height)
+#[inline(always)]
+fn scale_main<F>(ob: &mut Vec<u8>, width: u32, height: u32, kernel: F)
+where
+    F: Fn(f64, f64, f64, f64) -> [u8; 4],
+{
+    let old_info = image_info();
+
+    let sw = old_info.width as f64;
+    let sh = old_info.height as f64;
+    let dw = width as f64 - 1.0;
+    let dh = height as f64 - 1.0;
+
+    for y in 0..height {
+        let vy = y as f64 * sh / dh;
+        for x in 0..width {
+            let vx = x as f64 * sw / dw;
+            let new_pixel = kernel(vx, vy, sw, sh);
+            ob.extend_from_slice(&new_pixel);
+        }
+    }
 }
 
 /// Resize a image using bilinear interpolation
-#[no_mangle]
-pub fn scale_linear(width: u32, height: u32) -> bool {
-    scale_main(width, height, |vx, vy, sw, sh| {
+pub fn scale_linear(ob: &mut Vec<u8>, width: u32, height: u32) {
+    scale_main(ob, width, height, |vx, vy, sw, sh| {
         let vx = (vx - 0.5).max(0.0);
         let vy = (vy - 0.5).max(0.0);
 
@@ -398,9 +439,8 @@ pub fn scale_linear(width: u32, height: u32) -> bool {
 }
 
 /// Resize a image using bicubic interpolation
-#[no_mangle]
-pub fn scale_cubic(width: u32, height: u32) -> bool {
-    scale_main(width, height, |vx, vy, sw, sh| {
+pub fn scale_cubic(ob: &mut Vec<u8>, width: u32, height: u32) {
+    scale_main(ob, width, height, |vx, vy, sw, sh| {
         let vx = vx - 0.5;
         let vy = vy - 0.5;
 
@@ -484,49 +524,6 @@ pub fn scale_cubic(width: u32, height: u32) -> bool {
 
         result
     })
-}
-
-#[inline]
-fn scale_main<F>(width: u32, height: u32, kernel: F) -> bool
-where
-    F: Fn(f64, f64, f64, f64) -> [u8; 4],
-{
-    let old_info = image_info();
-    if old_info.width == width && old_info.height == height {
-        return true;
-    }
-    if width < 1 || height < 1 {
-        return false;
-    }
-
-    let magic_number = 4;
-    let mut ob = Vec::new();
-    if ob
-        .try_reserve(width as usize * height as usize * magic_number)
-        .is_err()
-    {
-        return false;
-    }
-
-    let sw = old_info.width as f64;
-    let sh = old_info.height as f64;
-    let dw = width as f64 - 1.0;
-    let dh = height as f64 - 1.0;
-
-    for y in 0..height {
-        let vy = y as f64 * sh / dh;
-        for x in 0..width {
-            let vx = x as f64 * sw / dw;
-            let new_pixel = kernel(vx, vy, sw, sh);
-            ob.extend_from_slice(&new_pixel);
-        }
-    }
-
-    let ib = image_buffer();
-    ib.clear();
-    ib.extend_from_slice(ob.as_slice());
-    ib.shrink_to_fit();
-    _update_image_info(width, height)
 }
 
 #[no_mangle]

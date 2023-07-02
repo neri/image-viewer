@@ -1,6 +1,15 @@
+/// Online Image Viewer
+///
+/// Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED
+///
+/// https://github.com/neri/image-viewer
+///
+const APP_NAME = "Online Image Viewer";
+const COPYRIGHT = "Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED.";
+const REPOSITORY_URL = "https://github.com/neri/image-viewer";
 
 import './style.css';
-import { ImageLib, ImageType, Interpolation } from './libimage';
+import { ImageLib, ImageType } from './libimage';
 
 const $ = (x: string) => document.querySelector(x);
 
@@ -67,8 +76,31 @@ class App {
             reader.readAsArrayBuffer(file);
         }, false);
 
+        document.title = APP_NAME;
+        document.querySelectorAll('.app_name').forEach((element, _key, _parent) => {
+            const appNameTextNode = document.createTextNode(APP_NAME);
+            element.parentElement?.replaceChild(appNameTextNode, element);
+        });
+        document.querySelectorAll('.copyright').forEach((element, _key, _parent) => {
+            const appNameTextNode = document.createTextNode(COPYRIGHT);
+            element.parentElement?.replaceChild(appNameTextNode, element);
+        });
+        document.querySelectorAll('.repository_button').forEach((element, _key, _parent) => {
+            const repositoryButton = document.createElement('a');
+            repositoryButton.className = 'button';
+            repositoryButton.href = REPOSITORY_URL;
+            repositoryButton.target = "_blank";
+            repositoryButton.appendChild(app.makeIcon('ic_launch'));
+            repositoryButton.appendChild(document.createTextNode('Open in GitHub'));
+            element.parentElement?.replaceChild(repositoryButton, element);
+        });
+
         ($('#menuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             new MainMenu().show();
+        });
+
+        ($('#aboutMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            new AboutDialog().show();
         });
 
         ($('#cropMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
@@ -140,8 +172,8 @@ class App {
             this.snapshotRestore();
         });
 
-        for (const numerator of [1, 2, 4, 8, 16]) {
-            for (const denominator of [1, 2, 4, 8, 16]) {
+        for (const numerator of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16]) {
+            for (const denominator of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16]) {
                 ($(`#scalePreset_${numerator}_${denominator}`) as HTMLButtonElement | null)?.addEventListener('click', () => {
                     ScaleDialog.setRational(numerator, denominator);
                 });
@@ -232,7 +264,10 @@ class App {
         this.baseName = baseName;
         if (width > 0 && height > 0) {
             const title = `${baseName} (${width} x ${height})`;
-            titleText.innerHTML = title;
+            titleText.childNodes.forEach((node, key, parent) => {
+                titleText.removeChild(node)
+            });
+            titleText.appendChild(document.createTextNode(title));
             document.title = title;
         }
         startText.style.display = 'none';
@@ -383,8 +418,8 @@ class App {
             alert('Invalid size');
             return;
         }
-        const interpolation = parseInt(($('#scaleInterpolation') as HTMLSelectElement).value);
-        if (this.imgLib.scale(width, height, interpolation)) {
+        const scaleMode = parseInt(($('#scaleMode') as HTMLSelectElement).value);
+        if (this.imgLib.scale(width, height, scaleMode)) {
             this.reflectLibToCanvas();
         } else {
             alert('Scale failed');
@@ -398,6 +433,13 @@ class App {
         this.imgLib.snapshotRestore();
         this.reflectLibToCanvas();
     }
+
+    makeIcon(icon_id: string): HTMLElement {
+        const iconElement = document.createElement('span');
+        iconElement.id = icon_id;
+        iconElement.appendChild(document.createTextNode("\u00a0"));
+        return iconElement;
+    }
 }
 
 const app = new App();
@@ -409,48 +451,98 @@ class Dialog {
 
     isModal: boolean;
     selector: string;
-    outerElement: HTMLElement;
-    innerElement: HTMLElement;
 
-    constructor(selector: string, isModal: boolean = true) {
-        const outerElement = $(selector) as HTMLElement | null;
-        if (outerElement === null) {
+    outerElement: HTMLElement;
+    frameElement: HTMLElement;
+    bodyElement: HTMLElement;
+
+    constructor(mainId: string, title: string, icon: string | null = null, isModal: boolean = true) {
+        const selector = `#${mainId}`;
+        const targetElement = $(selector) as HTMLElement | null;
+        if (targetElement === null) {
             throw new Error(`selector (${selector}) is not found`);
         }
-        const innerElement = $(`${selector} .dialogInner`) as HTMLElement | null;
-        if (innerElement === null) {
-            throw new Error(`selector (${selector} .dialogInner) is not found`);
-        }
         this.selector = selector;
-        this.outerElement = outerElement;
-        this.innerElement = innerElement;
         this.isModal = isModal;
 
-        this.onResetStyle();
+        if (targetElement.className !== "dialogOuter") {
+            targetElement.removeAttribute('id');
+            targetElement.className = 'dialogBody';
 
-        if (this.childElement('.dialogCloseButton') === null) {
-            const close = document.createElement('a');
-            close.classList.add('button', 'dialogCloseButton');
-            close.appendChild(document.createTextNode('\u{2715}'))
-            close.addEventListener('click', () => {
+            const outerElement = document.createElement('div');
+            outerElement.id = mainId;
+            outerElement.className = 'dialogOuter';
+            outerElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!this.isModal) {
+                    Dialog.dismissTop();
+                }
+            });
+
+            const frameElement = document.createElement('div');
+            frameElement.className = 'dialogFrame';
+            frameElement.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+            outerElement.appendChild(frameElement);
+
+            const titleElement = document.createElement('div');
+            titleElement.className = 'dialogTitle';
+
+            if (icon !== null) {
+                titleElement.insertBefore(app.makeIcon(icon), null);
+            }
+
+            const titleString = document.createElement('div');
+            titleString.className = 'dialogTitleContent';
+            titleString.appendChild(document.createTextNode(title));
+            titleElement.insertBefore(titleString, null);
+
+            const closeButton = document.createElement('a');
+            closeButton.classList.add('button', 'dialogCloseButton');
+            closeButton.appendChild(document.createTextNode('\u{2715}'))
+            closeButton.addEventListener('click', () => {
                 Dialog.dismissTop()
             })
-            innerElement.insertBefore(close, innerElement.firstElementChild as HTMLElement);
+            titleElement.insertBefore(closeButton, null);
+
+            frameElement.appendChild(titleElement);
+
+            targetElement.parentNode?.replaceChild(outerElement, targetElement);
+            frameElement.appendChild(targetElement);
+
+            this.outerElement = outerElement;
+            this.frameElement = frameElement;
+            this.bodyElement = targetElement;
+        } else {
+            const frameElement = targetElement.firstElementChild as HTMLElement;
+            const bodyElement = targetElement.querySelector('.dialogBody') as HTMLElement;
+            this.outerElement = targetElement;
+            this.frameElement = frameElement;
+            this.bodyElement = bodyElement;
         }
+
+        this.onResetStyle();
     }
 
     onResetStyle() {
-        this.innerElement.style.transform = 'translate(-50%, -50%)';
+        this.frameElement.style.opacity = '0.0';
+        this.frameElement.style.transform = 'translate(-50%, -50%) scale(1.125)';
     }
 
-    onShow() { }
+    onShow() {
+        setTimeout(() => {
+            this.frameElement.style.opacity = '1.0';
+            this.frameElement.style.transform = 'translate(-50%, -50%) scale(1.0)';
+        }, 50);
+    }
 
     onClose() { }
 
     show() {
-        Dialog.show(this)
+        Dialog._show(this)
     }
-    static show(dialog: Dialog) {
+    private static _show(dialog: Dialog) {
         if (dialog.outerElement.style.display === 'block') return;
 
         if (Dialog._stack.length == 0) {
@@ -464,10 +556,11 @@ class Dialog {
             dialog.outerElement.style.backgroundColor = "rgba(0, 0, 0, 0.25)";
         }, 10);
     }
+
     dismiss() {
-        Dialog.dismiss(this)
+        Dialog._dismiss(this)
     }
-    static dismiss(dialog: Dialog) {
+    static _dismiss(dialog: Dialog) {
         Dialog._stack = Dialog._stack.filter(value => {
             if (value.selector === dialog.selector) {
                 this._close(value)
@@ -485,6 +578,7 @@ class Dialog {
             dialog.outerElement.style.display = 'none';
         }, 300);
     }
+
     static dismissAll() {
         while (Dialog._stack.length > 0) {
             this.dismissTop()
@@ -504,49 +598,47 @@ class Dialog {
 
 class MainMenu extends Dialog {
     constructor() {
-        super('#dialogMainMenu')
+        super('dialogMainMenu', "", "ic_menu", false);
     }
     onResetStyle(): void {
-        this.innerElement.style.transform = 'translate(-100%, 0)';
+        this.frameElement.style.transform = 'translate(-100%, 0)';
     }
     onShow(): void {
         setTimeout(() => {
-            this.innerElement.style.transform = 'translate(0, 0)';
+            this.frameElement.style.transform = 'translate(0, 0)';
         }, 50);
     }
 }
 
+class AboutDialog extends Dialog {
+    constructor() {
+        super('dialogAbout', "About...", null, false);
+    }
+}
+
 class AlertDialog extends Dialog {
-    constructor(message: string) {
-        super('#dialogAlert');
+    constructor(message: string, title: string | null = null, icon: string | null = "ic_error") {
+        super('dialogAlert', title ?? "", icon ?? "", false);
 
         const alertMessage = ($('#alertMessage') as HTMLElement | null);
         if (alertMessage !== null) {
             alertMessage.innerText = message;
         }
     }
-    onResetStyle(): void {
-        this.innerElement.style.opacity = '0.0';
-        this.innerElement.style.transform = 'translate(-50%, -50%) scale(1.25)';
-    }
-    onShow(): void {
-        setTimeout(() => {
-            this.innerElement.style.opacity = '1.0';
-            this.innerElement.style.transform = 'translate(-50%, -50%) scale(1.0)';
-        }, 50);
-    }
 }
 
 class CropDialog extends Dialog {
     private static inShow = false;
     constructor() {
-        super('#dialogCrop');
+        super('dialogCrop', "Resize (Crop)", "ic_crop");
     }
     onShow(): void {
+        super.onShow();
         CropDialog.inShow = true;
         CropDialog.update();
     }
     onClose(): void {
+        super.onClose();
         CropDialog.inShow = false;
         CropDialog.updateHandle();
     }
@@ -593,11 +685,11 @@ class CropDialog extends Dialog {
         const { width, height } = app.getInfo();
 
         let newDims = [width, height];
-        const h1 = Math.floor(width * denominator / numerator);
+        const h1 = roundToEven(width * denominator / numerator);
         if (h1 <= height) {
             newDims = [width, h1];
         } else {
-            const w1 = Math.floor(height * numerator / denominator);
+            const w1 = roundToEven(height * numerator / denominator);
             newDims = [w1, height];
         }
 
@@ -625,13 +717,15 @@ class CropDialog extends Dialog {
 class ScaleDialog extends Dialog {
     private static inShow = false;
     constructor() {
-        super('#dialogScale');
+        super('dialogScale', "Resize (Scale)", "ic_transform");
     }
     onShow(): void {
+        super.onShow();
         ScaleDialog.inShow = true;
         ScaleDialog.update();
     }
     onClose(): void {
+        super.onClose();
         ScaleDialog.inShow = false;
     }
     static setInputElement(selector: string, value: number, max: number, min: number = 0) {
@@ -661,15 +755,15 @@ class ScaleDialog extends Dialog {
     }
     static setScale(numerator: number, denominator: number) {
         const { width, height } = app.getInfo();
-        const w = Math.ceil(width * numerator / denominator);
-        const h = Math.ceil(height * numerator / denominator);
+        const w = roundToEven(width * numerator / denominator);
+        const h = roundToEven(height * numerator / denominator);
         ($('#scaleWidth') as HTMLInputElement).value = String(w);
         ($('#scaleHeight') as HTMLInputElement).value = String(h);
     }
     static setWidth() {
         const { width, height } = app.getInfo();
         const w = parseInt(($('#scaleWidth') as HTMLInputElement).value);
-        const h = Math.ceil(w * height / width);
+        const h = roundToEven(w * height / width);
         ($('#scaleHeight') as HTMLInputElement).value = String(h);
         const percent = Math.ceil(1000 * w / width) / 10;
         ($('#scalePercent') as HTMLInputElement).value = percent.toString();
@@ -677,7 +771,7 @@ class ScaleDialog extends Dialog {
     static setHeight() {
         const { width, height } = app.getInfo();
         const h = parseInt(($('#scaleHeight') as HTMLInputElement).value);
-        const w = Math.ceil(h * width / height);
+        const w = roundToEven(h * width / height);
         ($('#scaleWidth') as HTMLInputElement).value = String(w);
         const percent = Math.ceil(1000 * h / height) / 10;
         ($('#scalePercent') as HTMLInputElement).value = percent.toString();
@@ -702,3 +796,21 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     return btoa(array.join(''));
 }
 
+const roundToEven = (v: number): number => {
+    if (!Number.isFinite(v)) {
+        return NaN;
+    }
+    const ipart = Math.floor(v);
+    const fpart = v - ipart;
+    if (fpart < 0.5) {
+        return ipart;
+    } else if (fpart > 0.5) {
+        return Math.ceil(v);
+    } else {
+        if ((ipart & 1) == 0) {
+            return ipart;
+        } else {
+            return Math.ceil(v);
+        }
+    }
+}

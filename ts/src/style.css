@@ -13,15 +13,17 @@ body {
 
 header {
     -webkit-app-region: drag;
-    position: fixed;
+    align-items: center;
+    background: #37474F;
+    box-shadow: 1px 1px 4px 2px rgba(0, 0, 0, 0.25);
+    color: #EEEEEE;
+    display: flex;
+    height: 32px;
     left: 0;
+    position: fixed;
     right: 0;
     top: 0;
     width: 100%;
-    min-height: 40px;
-    background: #37474F;
-    color: #EEEEEE;
-    box-shadow: 1px 1px 4px 2px rgba(0, 0, 0, 0.25);
     z-index: 1;
 }
 
@@ -44,8 +46,9 @@ a.button:link {
 }
 
 .button {
-    border: #E0E0E0 solid 1px;
+    border: #555555 solid 0.5px;
     color: #424242;
+    text-shadow: none;
 }
 
 nav li .button {
@@ -56,6 +59,7 @@ nav li .button {
 .button:focus {
     background: #2196F3;
     color: #FFF;
+    text-shadow: none;
 }
 
 .button[disabled] {
@@ -63,20 +67,40 @@ nav li .button {
     color: #AAA;
     box-shadow: none;
     cursor: default;
+    text-shadow: none;
 }
 
 .buttonActive {
     background: #2196F3;
     color: #FFF;
+    text-shadow: none;
 }
 
 .buttonDestructive {
     background: #f44336;
     color: #FFF;
+    text-shadow: none;
+}
+
+fieldset {
+    border: #9E9E9E dashed 1px;
+    border-radius: 8px;
+}
+
+h1 {
+    text-align: center;
+    text-shadow: none;
+}
+
+hr {
+    margin: 8px 0;
+    padding: 0;
+    border: none;
+    border-bottom: #9E9E9E dashed 1px;
 }
 
 #main {
-    margin-top: 44px;
+    margin-top: 36px;
     transition: filter 0.125s ease-in-out;
 }
 
@@ -115,6 +139,10 @@ input.scale {
     filter: blur(4px);
 }
 
+.dialogSeed {
+    display: none;
+}
+
 .dialogOuter {
     display: none;
     position: fixed;
@@ -126,46 +154,73 @@ input.scale {
     transition: background-color 0.125s ease-in-out;
 }
 
-.dialogInner {
+.dialogFrame {
     position: absolute;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    background: rgba(100%, 100%, 100%, 0.55);
+    border-radius: 8px;
     box-shadow: 0 5px 15px 1px rgba(0, 0, 0, 0.5);
-    top: 50%;
     left: 50%;
-    min-width: 240px;
     max-width: 95%;
-    border-radius: 6px;
-    padding: 6px;
-    background: #FFF;
+    min-width: 240px;
+    overflow: auto;
+    padding: 0;
+    top: 50%;
+    transition: opacity 0.125s ease-in, transform 0.125s ease-in-out;
+    display: flex;
+    flex-direction: column;
 }
 
-.dialogInner h2 {
+.dialogTitle {
     margin: 0;
-    padding: 2px 4px 4px;
+    color: #333;
     border-bottom: #AAA dashed 1px;
     font-size: 10pt;
     white-space: nowrap;
+    text-shadow: 0px 0px 5px white;
+    flex-grow: 0;
+    flex-shrink: 1;
+    flex-basis: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 8px;
+}
+
+.dialogBody {
+    flex-grow: 1;
+    flex-shrink: 2;
+    margin: 0;
+    padding: 8px;
+    background: rgba(100%, 100%, 100%, 0.5);
+    text-shadow: 0px 0px 3px white;
+}
+
+.dialogTitleContent {
+    flex-grow: 1;
+    padding: 0 8px;
 }
 
 .dialogCloseButton {
-    float: right;
-    position: relative;
-    top: -6px;
-    right: -2px;
+    border: none;
+    align-self: flex-end;
+    text-shadow: 0px 0px 3px white;
 }
 
 .dialogCloseButton:hover,
 .dialogCloseButton:focus {
-    background: #f44336;
-    color: #FFF;
+    background: transparent;
+    color: #333;
+    text-shadow: 1px 1px 3px #f44336;
 }
 
 #menuButton {
     display: inline-block;
-    padding: 8px 8px;
+    margin: 0 8px;
     cursor: pointer;
 }
 
-#dialogMainMenu .dialogInner {
+#dialogMainMenu .dialogFrame {
     top: 0;
     left: 0;
     width: 240px;
@@ -173,18 +228,9 @@ input.scale {
     transition: transform 0.25s ease-in-out;
 }
 
-#dialogAlert .dialogInner {
-    transition: opacity 0.125s ease-in, transform 0.125s ease-in-out;
-}
-
 #dialogAlert p {
     text-align: center;
     margin: 1em;
-}
-
-fieldset {
-    border: #9E9E9E dashed 1px;
-    border-radius: 8px;
 }
 
 nav ul {
@@ -195,6 +241,13 @@ nav ul {
 nav li {
     list-style: none;
     margin: 0.5em 0;
+}
+
+#ic_blank {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    padding: 0;
 }
 
 #ic_cloud_download {

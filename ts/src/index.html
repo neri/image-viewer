@@ -1,3 +1,9 @@
+<!--
+    Online Image Viewer
+    Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED
+
+    https://github.com/neri/image-viewer
+-->
 <!doctype html>
 <html>
 
@@ -5,13 +11,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#37474F" />
-    <title>Online Image Viewer</title>
 </head>
 
 <body style="display: none;">
     <header>
         <a id="menuButton"><span id="ic_menu_white">&nbsp;</span></a>
-        <b id="titleText">Online Image Viewer</b>
+        <span id="titleText">&nbsp;</span>
     </header>
 
     <div id="main">
@@ -20,157 +25,148 @@
         <canvas id="handleCanvas" width="0" height="0"></canvas>
     </div>
 
-    <div id="dialogAlert" class="dialogOuter">
-        <div class="dialogInner">
-            <h2><span id="ic_error">&nbsp;</span></h2>
-            <p id="alertMessage"></p>
-        </div>
+    <div id="dialogAlert" class="dialogSeed">
+        <p id="alertMessage"></p>
     </div>
 
-    <div id="dialogMainMenu" class="dialogOuter">
-        <nav class="dialogInner">
-            <h2><span id="ic_menu">&nbsp;</span></h2>
-            <ul>
-                <li>
-                    <label>
-                        <a id="loadButton" class="button">
-                            <span id="ic_folder_open">&nbsp;</span>
-                            Open...
-                        </a>
-                        <input id="fileLocal" type="file" style="display: none;">
-                    </label>
-                </li>
-                <li>
-                    <a id="cropMenuButton" class="button">
-                        <span id="ic_crop">&nbsp;</span>
-                        Resize (Crop)...
+    <nav id="dialogMainMenu" class="dialogSeed">
+        <ul>
+            <li>
+                <label>
+                    <a id="loadButton" class="button">
+                        <span id="ic_folder_open">&nbsp;</span>
+                        Open...
                     </a>
-                </li>
-                <li>
-                    <a id="scaleMenuButton" class="button">
-                        <span id="ic_transform">&nbsp;</span>
-                        Resize (Scale)...
-                    </a>
-                </li>
-                <li>
-                    <fieldset>
-                        <legend><span id="ic_cloud_download">&nbsp;</span> Export as...</legend>
-                        <ul>
-                            <li>
-                                <a id="saveQoiButton" class="button">.QOI</a>
-                                <label>&nbsp;
-                                    <input id="checkSaveAlpha" type="checkbox">
-                                    Alpha Channel
-                                </label>
-                            </li>
-                            <li>
-                                <a id="saveMpicButton" class="button">.MPIC</a>
-                            </li>
-                            <li>
-                                <a id="savePngButton" class="button">.PNG</a>
-                            </li>
-                        </ul>
-                    </fieldset>
-                </li>
-                <li>
-                    <a class="button" href="https://github.com/neri/image-viewer" target="_blank"><span
-                            id="ic_launch">&nbsp;</span> Open in GitHub</a>
-                </li>
-            </ul>
-        </nav>
+                    <input id="fileLocal" type="file" style="display: none;">
+                </label>
+            </li>
+            <li>
+                <a id="cropMenuButton" class="button">
+                    <span id="ic_crop">&nbsp;</span>
+                    Resize (Crop)...
+                </a>
+            </li>
+            <li>
+                <a id="scaleMenuButton" class="button">
+                    <span id="ic_transform">&nbsp;</span>
+                    Resize (Scale)...
+                </a>
+            </li>
+            <li>
+                <fieldset>
+                    <legend><span id="ic_cloud_download">&nbsp;</span> Export as...</legend>
+                    <ul>
+                        <li>
+                            <a id="saveQoiButton" class="button">.QOI</a>
+                            <label>&nbsp;
+                                <input id="checkSaveAlpha" type="checkbox">
+                                Alpha Channel
+                            </label>
+                        </li>
+                        <li>
+                            <a id="saveMpicButton" class="button">.MPIC</a>
+                        </li>
+                        <li>
+                            <a id="savePngButton" class="button">.PNG</a>
+                        </li>
+                    </ul>
+                </fieldset>
+            </li>
+            <li>
+                <a class="button" id="aboutMenuButton">
+                    <span id="ic_blank">&nbsp;</span>
+                    About...
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div id="dialogCrop" class="dialogSeed">
+        <fieldset>
+            <legend>Size</legend>
+            <label>
+                width:
+                <input id="cropWidth" type="number" inputmode="numeric" class="coords">
+            </label>
+            <label>
+                height:
+                <input id="cropHeight" type="number" inputmode="numeric" class="coords">
+            </label>
+        </fieldset>
+        <fieldset>
+            <legend>Offset</legend>
+            <label>
+                X:
+                <input id="cropX" type="number" inputmode="numeric" class="coords">
+            </label>
+            <label>
+                Y:
+                <input id="cropY" type="number" inputmode="numeric" class="coords">
+            </label>
+            <a class="button" id="cropCenterButton">center</a>
+        </fieldset>
+        <fieldset>
+            <legend>Preset Ratio</legend>
+            <a class="button" id="cropPreset_1_1">1:1</a>
+            <a class="button" id="cropPreset_3_2">3:2</a>
+            <a class="button" id="cropPreset_4_3">4:3</a>
+            <a class="button" id="cropPreset_16_9">16:9</a>
+            <a class="button" id="cropPreset_2_3">3:2</a>
+            <a class="button" id="cropPreset_3_4">3:4</a>
+            <a class="button" id="cropPreset_9_16">9:16</a>
+        </fieldset>
+        <hr>
+        <a class="buttonActive" id="cropExecButton">Crop</a>
+        <a class="button" id="cropResetButton">Reset</a>
     </div>
 
-    <div id="dialogCrop" class="dialogOuter">
-        <div class="dialogInner">
-            <h2>
-                <span id="ic_crop">&nbsp;</span>
-                Resize (Crop)
-            </h2>
-            <fieldset>
-                <legend>Size</legend>
-                <label>
-                    width:
-                    <input id="cropWidth" type="number" inputmode="numeric" class="coords">
-                </label>
-                <label>
-                    height:
-                    <input id="cropHeight" type="number" inputmode="numeric" class="coords">
-                </label>
-            </fieldset>
-            <fieldset>
-                <legend>Offset</legend>
-                <label>
-                    X:
-                    <input id="cropX" type="number" inputmode="numeric" class="coords">
-                </label>
-                <label>
-                    Y:
-                    <input id="cropY" type="number" inputmode="numeric" class="coords">
-                </label>
-                <a class="button" id="cropCenterButton">center</a>
-            </fieldset>
-            <fieldset>
-                <legend>Preset Ratio</legend>
-                <a class="button" id="cropPreset_1_1">1:1</a>
-                <a class="button" id="cropPreset_3_2">3:2</a>
-                <a class="button" id="cropPreset_4_3">4:3</a>
-                <a class="button" id="cropPreset_16_9">16:9</a>
-                <a class="button" id="cropPreset_2_3">3:2</a>
-                <a class="button" id="cropPreset_3_4">3:4</a>
-                <a class="button" id="cropPreset_9_16">9:16</a>
-            </fieldset>
-            <hr>
-            <a class="buttonActive" id="cropExecButton">Crop</a>
-            <a class="button" id="cropResetButton">Reset</a>
-        </div>
+    <div id="dialogScale" class="dialogSeed">
+        <fieldset>
+            <legend>Size</legend>
+            <label>
+                width:
+                <input id="scaleWidth" type="number" inputmode="numeric" class="coords">
+            </label>
+            <label>
+                height:
+                <input id="scaleHeight" type="number" inputmode="numeric" class="coords">
+            </label>
+        </fieldset>
+        <p>
+            <label>
+                percent:
+                <input id="scalePercent" type="number" inputmode="numeric" class="scale" min="0" step="1">
+            </label>
+        </p>
+        <p>
+            <label>
+                Interpolation:
+                <select id="scaleMode">
+                    <option value="0">nearest neighbor</option>
+                    <option value="1">bilinear</option>
+                    <option value="2">bicubic</option>
+                </select>
+            </label>
+        </p>
+        <fieldset>
+            <legend>Preset</legend>
+            <a class="button" id="scalePreset_8_1">x8</a>
+            <a class="button" id="scalePreset_4_1">x4</a>
+            <a class="button" id="scalePreset_2_1">x2</a>
+            <a class="button" id="scalePreset_1_2">1/2</a>
+            <a class="button" id="scalePreset_1_4">1/4</a>
+            <a class="button" id="scalePreset_1_8">1/8</a>
+        </fieldset>
+        <hr>
+        <a class="buttonActive" id="scaleExecButton">Scale</a>
+        <a class="button" id="scaleResetButton">Reset</a>
     </div>
 
-    <div id="dialogScale" class="dialogOuter">
-        <div class="dialogInner">
-            <h2>
-                <span id="ic_transform">&nbsp;</span>
-                Resize (Scale)
-            </h2>
-            <fieldset>
-                <legend>Size</legend>
-                <label>
-                    width:
-                    <input id="scaleWidth" type="number" inputmode="numeric" class="coords">
-                </label>
-                <label>
-                    height:
-                    <input id="scaleHeight" type="number" inputmode="numeric" class="coords">
-                </label>
-            </fieldset>
-            <p>
-                <label>
-                    percent:
-                    <input id="scalePercent" type="number" inputmode="numeric" class="scale" min="1" step="1">
-                </label>
-            </p>
-            <p>
-                <label>
-                    Interpolation:
-                    <select id="scaleInterpolation">
-                        <option value="0">nearest neighbor</option>
-                        <option value="1">bilinear</option>
-                        <option value="2">bicubic</option>
-                    </select>
-                </label>
-            </p>
-            <fieldset>
-                <legend>Preset</legend>
-                <a class="button" id="scalePreset_8_1">x8</a>
-                <a class="button" id="scalePreset_4_1">x4</a>
-                <a class="button" id="scalePreset_2_1">x2</a>
-                <a class="button" id="scalePreset_1_2">1/2</a>
-                <a class="button" id="scalePreset_1_4">1/4</a>
-                <a class="button" id="scalePreset_1_8">1/8</a>
-            </fieldset>
-            <hr>
-            <a class="buttonActive" id="scaleExecButton">Scale</a>
-            <a class="button" id="scaleResetButton">Reset</a>
-        </div>
+    <div id="dialogAbout" class="dialogSeed">
+        <h1><span class="app_name">&nbsp;</span></h1>
+        <p><span class="copyright"></span></p>
+        <hr>
+        <span class="repository_button"></span>
     </div>
 
 </body>
