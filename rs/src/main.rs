@@ -348,8 +348,20 @@ pub fn scale(width: u32, height: u32, mode: ScaleMode) -> bool {
 
     match mode {
         ScaleMode::NearstNeighbor => scale_nn(&mut ob, width, height),
-        ScaleMode::Bilinear => scale_linear(&mut ob, width, height),
-        ScaleMode::Bicubic => scale_cubic(&mut ob, width, height),
+        ScaleMode::Bilinear => {
+            if old_info.width > width && old_info.height > height {
+                scale_reduction(&mut ob, width, height)
+            } else {
+                scale_linear(&mut ob, width, height)
+            }
+        }
+        ScaleMode::Bicubic => {
+            if old_info.width > width && old_info.height > height {
+                scale_reduction(&mut ob, width, height)
+            } else {
+                scale_cubic(&mut ob, width, height)
+            }
+        }
     }
 
     let ib = image_buffer();
@@ -524,6 +536,51 @@ pub fn scale_cubic(ob: &mut Vec<u8>, width: u32, height: u32) {
 
         result
     })
+}
+
+/// Image resizing process for reduction only
+pub fn scale_reduction(ob: &mut Vec<u8>, width: u32, height: u32) {
+    let old_info = image_info();
+
+    let sw = old_info.width as f64;
+    let sh = old_info.height as f64;
+    let dw = width as f64;
+    let dh = height as f64;
+
+    #[inline(always)]
+    fn kernel(x: u32, y: u32, sw: f64, sh: f64, dw: f64, dh: f64) -> [u8; 4] {
+        let vx = x as f64 * sw / dw;
+        let vy = y as f64 * sh / dh;
+
+        let lx = vx.floor() as u32;
+        let ly = vy.floor() as u32;
+        let hx = (vx + sw / dw).ceil().min(sw - 1.0) as u32;
+        let hy = (vy + sh / dh).ceil().min(sh - 1.0) as u32;
+
+        let mut acc = [0.0; 4];
+        for y in ly..hy {
+            for x in lx..hx {
+                let p = _get_pixel(x, y);
+                for ch in 0..4 {
+                    acc[ch] += p[ch] as f64;
+                }
+            }
+        }
+
+        let mut result = [0; 4];
+        let count = (hy as f64 - ly as f64) * (hx as f64 - lx as f64);
+        for i in 0..4 {
+            result[i] = (acc[i] / count).clamp(0.0, 255.0) as u8
+        }
+        result
+    }
+
+    for y in 0..height {
+        for x in 0..width {
+            let new_pixel = kernel(x, y, sw, sh, dw, dh);
+            ob.extend_from_slice(&new_pixel);
+        }
+    }
 }
 
 #[no_mangle]
