@@ -17,6 +17,10 @@ clean:
 	-rm $(LIB_QOI) $(TS_MAIN)
 	-rm -rf $(TS_DIST)
 
+debug:
+	(cd $(RS_SRC); cargo build)
+	cp target/wasm32-unknown-unknown/debug/libimage.wasm $(LIB_QOI)
+
 $(LIB_QOI): $(RS_SRC)src/*.rs
 	(cd $(RS_SRC); cargo build --release)
 	cargo run --manifest-path $(WASM_STRIP)Cargo.toml -- target/wasm32-unknown-unknown/release/libimage.wasm $(LIB_QOI)
