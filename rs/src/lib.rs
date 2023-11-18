@@ -1,6 +1,7 @@
-#![no_std]
 #![no_main]
 #![deny(unsafe_op_in_unsafe_fn)]
+
+extern crate alloc;
 
 use alloc::vec::Vec;
 use core::{
@@ -9,13 +10,11 @@ use core::{
 };
 use mpic;
 use rapid_qoi::{Colors, Qoi};
+use wasm_bindgen::{prelude::*, Clamped};
+use web_sys::{CanvasRenderingContext2d, ImageData};
 
-extern crate alloc;
-
-static mut INPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
-static mut OUTPUT_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
-static mut IMAGE_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 static mut IMAGE_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::empty());
+static mut IMAGE_BUFFER: UnsafeCell<Vec<u8>> = UnsafeCell::new(Vec::new());
 
 static mut SNAPSHOT_INFO: RefCell<Option<ImageInfo>> = RefCell::new(None);
 static mut SNAPSHOT_IMAGE: RefCell<Vec<u8>> = RefCell::new(Vec::new());
@@ -31,16 +30,6 @@ fn image_buffer<'a>() -> &'a mut Vec<u8> {
 }
 
 #[inline]
-fn output_buffer<'a>() -> &'a mut Vec<u8> {
-    unsafe { OUTPUT_BUFFER.get_mut() }
-}
-
-#[inline]
-fn input_buffer<'a>() -> &'a mut Vec<u8> {
-    unsafe { INPUT_BUFFER.get_mut() }
-}
-
-#[inline]
 fn snapshot_info<'a>() -> impl DerefMut<Target = Option<ImageInfo>> + 'a {
     unsafe { SNAPSHOT_INFO.borrow_mut() }
 }
@@ -50,149 +39,38 @@ fn snapshot_image_buffer<'a>() -> impl DerefMut<Target = Vec<u8>> + 'a {
     unsafe { SNAPSHOT_IMAGE.borrow_mut() }
 }
 
-#[no_mangle]
-pub fn cleanup() {
-    let buffer = input_buffer();
-    buffer.clear();
-    buffer.shrink_to_fit();
-
-    let buffer = image_buffer();
-    buffer.clear();
-    buffer.shrink_to_fit();
-
-    output_buffer_cleanup();
-
-    *image_info() = ImageInfo::default();
-    snapshot_clear();
-}
-
-#[no_mangle]
-pub fn input_buffer_resize(new_len: usize) -> usize {
-    let ib = input_buffer();
-    ib.clear();
-    ib.resize(new_len, 0);
-
-    ib.as_ptr() as usize
-}
-
-#[no_mangle]
-pub fn output_buffer_cleanup() {
-    let buffer = output_buffer();
-    buffer.clear();
-    buffer.shrink_to_fit();
-}
-
-#[no_mangle]
-pub fn image_buffer_get_base() -> usize {
-    let ob = image_buffer();
-    if ob.len() > 0 {
-        ob.as_ptr() as usize
-    } else {
-        usize::MAX
-    }
-}
-
-#[no_mangle]
-pub fn image_buffer_get_size() -> usize {
-    image_buffer().len()
-}
-
-#[no_mangle]
-pub fn output_buffer_get_base() -> usize {
-    let ob = output_buffer();
-    if ob.len() > 0 {
-        ob.as_ptr() as usize
-    } else {
-        usize::MAX
-    }
-}
-
-#[no_mangle]
-pub fn output_buffer_get_size() -> usize {
-    output_buffer().len()
-}
-
-#[no_mangle]
-pub fn image_buffer_resize(new_len: usize) -> usize {
-    let ib = image_buffer();
-    ib.clear();
-    ib.resize(new_len, 0);
-
-    ib.as_ptr() as usize
-}
-
-#[no_mangle]
+#[wasm_bindgen]
 pub fn image_width() -> u32 {
     image_info().width
 }
 
-#[no_mangle]
+#[wasm_bindgen]
 pub fn image_height() -> u32 {
     image_info().height
 }
 
-#[no_mangle]
+#[wasm_bindgen]
 pub fn image_has_alpha() -> bool {
     image_info().transparency.into()
 }
 
-#[no_mangle]
-pub fn set_image_has_alpha(value: usize) {
-    image_info().transparency = (value != 0).into();
+#[wasm_bindgen]
+pub fn set_image_has_alpha(value: bool) {
+    image_info().transparency = value.into();
 }
 
-#[no_mangle]
-pub fn decode() -> bool {
-    let input_buffer = input_buffer().as_slice();
-
-    match Qoi::decode_alloc(input_buffer) {
-        Ok((qoi, buffer)) => {
-            let has_alpha = qoi.colors.has_alpha();
-            *image_info() = ImageInfo::new(qoi.width, qoi.height, has_alpha.into());
-            snapshot_clear();
-
-            let ob = image_buffer();
-            ob.clear();
-            if has_alpha {
-                ob.extend_from_slice(buffer.as_slice());
-            } else {
-                for rgb in buffer.chunks(3) {
-                    ob.extend_from_slice(rgb);
-                    ob.push(u8::MAX);
-                }
-            }
-
-            return true;
-        }
-        Err(_) => (),
-    }
-
-    if let Some(decoder) = mpic::Decoder::<()>::new(input_buffer) {
-        let mpic_info = decoder.info();
-        *image_info() = ImageInfo::new(mpic_info.width(), mpic_info.height(), Transparency::Opaque);
-        snapshot_clear();
-
-        match decoder.decode_rgba() {
-            Ok(vec) => {
-                let ob = image_buffer();
-                ob.clear();
-                ob.extend_from_slice(vec.as_slice());
-                return true;
-            }
-            Err(_) => (),
-        }
-    }
-
-    false
-}
-
-#[no_mangle]
-pub fn set_image_info(width: u32, height: u32) -> bool {
+#[wasm_bindgen]
+pub fn set_image_buffer(buffer: &[u8], width: u32, height: u32) -> bool {
     snapshot_clear();
-    _update_image_info(width, height)
+    _set_image_buffer(buffer, width, height)
 }
 
-fn _update_image_info(width: u32, height: u32) -> bool {
+fn _set_image_buffer(buffer: &[u8], width: u32, height: u32) -> bool {
+    let ib = image_buffer();
+    ib.clear();
+    ib.extend_from_slice(buffer);
+    ib.shrink_to_fit();
+
     let mut info = ImageInfo::new(width, height, Transparency::Opaque);
     let ib = image_buffer();
 
@@ -212,64 +90,124 @@ fn _update_image_info(width: u32, height: u32) -> bool {
     true
 }
 
-#[no_mangle]
-pub fn encode_qoi() -> bool {
-    let ib = image_buffer();
-    let info = image_info();
+#[wasm_bindgen]
+pub fn draw_to_canvas(context: &CanvasRenderingContext2d) -> bool {
+    ImageData::new_with_u8_clamped_array_and_sh(
+        Clamped(image_buffer()),
+        image_width(),
+        image_height(),
+    )
+    .and_then(|image_data| context.put_image_data(&image_data, 0.0, 0.0))
+    .is_ok()
+}
 
-    let qoi = Qoi {
-        width: info.width as u32,
-        height: info.height as u32,
-        colors: match info.transparency {
-            Transparency::Opaque => Colors::Rgb,
-            Transparency::Translucent => Colors::Rgba,
-        },
-    };
-    let result = if qoi.colors.has_alpha() {
-        qoi.encode_alloc(ib.as_slice())
-    } else {
-        let buffer_size = info.number_of_pixels() * 3;
-        let mut vec = Vec::with_capacity(buffer_size);
-        for rgba in ib.chunks(4) {
-            vec.push(rgba[0]);
-            vec.push(rgba[1]);
-            vec.push(rgba[2]);
-        }
-        qoi.encode_alloc(vec.as_slice())
-    };
-    match result {
-        Ok(vec) => {
-            *output_buffer() = vec;
-            true
-        }
-        Err(_) => false,
+#[wasm_bindgen]
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ImageType {
+    Qoi,
+    Mpic,
+}
+
+#[wasm_bindgen]
+pub fn image_type_to_string(val: ImageType) -> String {
+    match val {
+        ImageType::Qoi => "qoi".to_owned(),
+        ImageType::Mpic => "mpic".to_owned(),
     }
 }
 
-#[no_mangle]
-pub fn encode_mpic() -> bool {
-    let ib = image_buffer();
-    let info = image_info();
+#[wasm_bindgen]
+pub fn decode(buffer: &[u8]) -> bool {
+    match Qoi::decode_alloc(buffer) {
+        Ok((qoi, buffer)) => {
+            snapshot_clear();
+            let has_alpha = qoi.colors.has_alpha();
+            *image_info() = ImageInfo::new(qoi.width, qoi.height, has_alpha.into());
 
-    let buffer_size = info.number_of_pixels() * 3;
-    let mut vec = Vec::with_capacity(buffer_size);
-    for rgba in ib.chunks(4) {
-        vec.push(rgba[0]);
-        vec.push(rgba[1]);
-        vec.push(rgba[2]);
+            let ob = image_buffer();
+            ob.clear();
+            if has_alpha {
+                ob.extend_from_slice(buffer.as_slice());
+            } else {
+                for rgb in buffer.chunks(3) {
+                    ob.extend_from_slice(rgb);
+                    ob.push(u8::MAX);
+                }
+            }
+
+            return true;
+        }
+        Err(_) => (),
     }
 
-    match mpic::Encoder::encode(vec.as_slice(), info.width as u32, info.height as u32) {
-        Ok(vec) => {
-            *output_buffer() = vec;
-            true
+    if let Some(decoder) = mpic::Decoder::<()>::new(buffer) {
+        snapshot_clear();
+        let mpic_info = decoder.info();
+        *image_info() = ImageInfo::new(mpic_info.width(), mpic_info.height(), Transparency::Opaque);
+
+        match decoder.decode_rgba() {
+            Ok(vec) => {
+                let ob = image_buffer();
+                ob.clear();
+                ob.extend_from_slice(vec.as_slice());
+                return true;
+            }
+            Err(_) => (),
         }
-        Err(_) => false,
+    }
+
+    false
+}
+
+#[wasm_bindgen]
+pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
+    match image_type {
+        ImageType::Qoi => {
+            let ib = image_buffer();
+            let info = image_info();
+
+            let qoi = Qoi {
+                width: info.width as u32,
+                height: info.height as u32,
+                colors: match info.transparency {
+                    Transparency::Opaque => Colors::Rgb,
+                    Transparency::Translucent => Colors::Rgba,
+                },
+            };
+            if qoi.colors.has_alpha() {
+                qoi.encode_alloc(ib.as_slice())
+            } else {
+                let buffer_size = info.number_of_pixels() * 3;
+                let mut vec = Vec::with_capacity(buffer_size);
+                for rgba in ib.chunks(4) {
+                    vec.push(rgba[0]);
+                    vec.push(rgba[1]);
+                    vec.push(rgba[2]);
+                }
+                qoi.encode_alloc(vec.as_slice())
+            }
+            .ok()
+        }
+        ImageType::Mpic => {
+            let ib = image_buffer();
+            let info = image_info();
+
+            let buffer_size = info.number_of_pixels() * 3;
+            let mut vec = Vec::with_capacity(buffer_size);
+            for rgba in ib.chunks(4) {
+                vec.push(rgba[0]);
+                vec.push(rgba[1]);
+                vec.push(rgba[2]);
+            }
+
+            mpic::Encoder::encode(vec.as_slice(), info.width as u32, info.height as u32).ok()
+        }
     }
 }
 
 /// Crop an image
-#[no_mangle]
+#[wasm_bindgen]
 pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
     let old_info = image_info();
     if x >= old_info.width
@@ -293,20 +231,20 @@ pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
     let offset = (old_info.width as usize * y as usize) * magic_number;
     let line_offset = x as usize * magic_number;
     let line_range = line_offset..line_offset + width as usize * magic_number;
-    let Some(ib) = image_buffer().get(offset..) else { return false; };
+    let Some(ib) = image_buffer().get(offset..) else {
+        return false;
+    };
     for (line, _) in ib
         .chunks(old_info.width as usize * magic_number)
         .zip(0..height)
     {
-        let Some(line) = line.get(line_range.clone()) else { return false; };
+        let Some(line) = line.get(line_range.clone()) else {
+            return false;
+        };
         ob.extend_from_slice(line);
     }
 
-    let ib = image_buffer();
-    ib.clear();
-    ib.extend_from_slice(ob.as_slice());
-    ib.shrink_to_fit();
-    _update_image_info(width, height)
+    _set_image_buffer(ob.as_slice(), width, height)
 }
 
 fn _get_pixel(x: u32, y: u32) -> [u8; 4] {
@@ -319,7 +257,8 @@ fn _get_pixel(x: u32, y: u32) -> [u8; 4] {
 }
 
 #[non_exhaustive]
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ScaleMode {
     NearstNeighbor,
     Bilinear,
@@ -327,7 +266,7 @@ pub enum ScaleMode {
 }
 
 /// Resize a image
-#[no_mangle]
+#[wasm_bindgen]
 pub fn scale(width: u32, height: u32, mode: ScaleMode) -> bool {
     let old_info = image_info();
     if old_info.width == width && old_info.height == height {
@@ -364,11 +303,7 @@ pub fn scale(width: u32, height: u32, mode: ScaleMode) -> bool {
         }
     }
 
-    let ib = image_buffer();
-    ib.clear();
-    ib.extend_from_slice(ob.as_slice());
-    ib.shrink_to_fit();
-    _update_image_info(width, height)
+    _set_image_buffer(ob.as_slice(), width, height)
 }
 
 /// Resize a image using nearest neighbor interpolation
@@ -583,7 +518,7 @@ pub fn scale_reduction(ob: &mut Vec<u8>, width: u32, height: u32) {
     }
 }
 
-#[no_mangle]
+#[wasm_bindgen]
 pub fn snapshot_clear() {
     snapshot_info().take();
 
@@ -592,7 +527,7 @@ pub fn snapshot_clear() {
     sib.shrink_to_fit();
 }
 
-#[no_mangle]
+#[wasm_bindgen]
 pub fn snapshot_save() {
     let info = image_info();
     snapshot_info().replace(*info);
@@ -603,7 +538,7 @@ pub fn snapshot_save() {
     sib.extend_from_slice(ib.as_slice());
 }
 
-#[no_mangle]
+#[wasm_bindgen]
 pub fn snapshot_restore() -> bool {
     let Some(info) = *snapshot_info() else {
         return false;

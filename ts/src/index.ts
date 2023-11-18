@@ -9,7 +9,7 @@ const COPYRIGHT = "Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED.";
 const REPOSITORY_URL = "https://github.com/neri/image-viewer";
 
 import './style.css';
-import { ImageLib, ImageType } from './libimage';
+import * as wasm from '../lib/libimage';
 
 const $ = (x: string) => document.querySelector(x);
 
@@ -18,11 +18,6 @@ const alert = (x: string) => new AlertDialog(x).show();
 class App {
 
     private baseName = 'download';
-    private imgLib: ImageLib;
-
-    constructor() {
-        this.imgLib = new ImageLib();
-    }
 
     onload() {
         const html = $('html') as HTMLElement;
@@ -189,13 +184,13 @@ class App {
 
         ($('#saveQoiButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.exportEncoded(ImageType.Qoi);
+                this.exportEncoded(wasm.ImageType.Qoi);
             }
         });
 
         ($('#saveMpicButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.exportEncoded(ImageType.Mpic);
+                this.exportEncoded(wasm.ImageType.Mpic);
             }
         });
 
@@ -276,17 +271,15 @@ class App {
     }
 
     loadImage(name: string, canvas: HTMLCanvasElement, blob: ArrayBuffer) {
-        const lib = this.imgLib;
-        if (lib.decode(blob)) {
-            const { width, height } = lib;
-            console.log(`Loaded ${name} via WASM (${width} x ${height}) has_alpha: ${lib.image_has_alpha}`);
+        if (wasm.decode(new Uint8Array(blob))) {
+            const width = wasm.image_width();
+            const height = wasm.image_height();
+            console.log(`Loaded ${name} via WASM (${width} x ${height}) has_alpha: ${wasm.image_has_alpha()}`);
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx !== null) {
-                const imageData = ctx.createImageData(width, height);
-                imageData.data.set(lib.image_buffer);
-                ctx.putImageData(imageData, 0, 0);
+                wasm.draw_to_canvas(ctx);
             }
             this.updateInfo(name, width, height);
             Dialog.dismissAll();
@@ -310,16 +303,14 @@ class App {
         }
     }
 
-    exportEncoded(type: ImageType) {
-        const lib = this.imgLib;
-
+    exportEncoded(type: wasm.ImageType) {
         const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
         if (checkSaveAlpha !== null) {
-            lib.image_has_alpha = checkSaveAlpha.checked;
+            wasm.set_image_has_alpha(checkSaveAlpha.checked);
         }
 
-        const data = lib.encode(type);
-        if (!(data instanceof ArrayBuffer)) {
+        const data = wasm.encode(type);
+        if (!(data instanceof Uint8Array)) {
             alert("ENCODE ERROR");
             console.log('encode error');
             return;
@@ -329,7 +320,7 @@ class App {
         const dataUrl = URL.createObjectURL(blob);
         const tag = document.createElement('a') as HTMLAnchorElement;
         tag.href = dataUrl;
-        tag.download = `${this.baseName}.${type.toString()}`;
+        tag.download = `${this.baseName}.${wasm.image_type_to_string(type)}`;
         tag.click();
     }
 
@@ -351,18 +342,17 @@ class App {
     }
 
     reflectCanvasToLib(canvas: HTMLCanvasElement) {
-        const lib = this.imgLib;
         const { width, height } = canvas;
         const ctx = canvas.getContext('2d');
         if (ctx === null) {
             return;
         }
         const imgData = ctx.getImageData(0, 0, width, height);
-        lib.set_image_buffer(imgData.data, width, height);
+        wasm.set_image_buffer(new Uint8Array(imgData.data), width, height);
 
         const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
         if (checkSaveAlpha !== null) {
-            checkSaveAlpha.checked = lib.image_has_alpha;
+            checkSaveAlpha.checked = wasm.image_has_alpha();
         }
     }
 
@@ -371,15 +361,13 @@ class App {
         if (canvas === null) {
             return;
         }
-        const lib = this.imgLib;
-        const { width, height } = lib;
+        const width = wasm.image_width();
+        const height = wasm.image_height();
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx !== null) {
-            const imageData = ctx.createImageData(width, height);
-            imageData.data.set(lib.image_buffer);
-            ctx.putImageData(imageData, 0, 0);
+            wasm.draw_to_canvas(ctx);
         }
         this.updateInfo(this.baseName, width, height);
     }
@@ -399,7 +387,7 @@ class App {
             alert('Out of Bounds');
             return;
         }
-        if (this.imgLib.crop(x, y, width, height)) {
+        if (wasm.crop(x, y, width, height)) {
             this.reflectLibToCanvas();
         } else {
             alert('Crop failed');
@@ -419,7 +407,7 @@ class App {
             return;
         }
         const scaleMode = parseInt(($('#scaleMode') as HTMLSelectElement).value);
-        if (this.imgLib.scale(width, height, scaleMode)) {
+        if (wasm.scale(width, height, scaleMode)) {
             this.reflectLibToCanvas();
         } else {
             alert('Scale failed');
@@ -427,10 +415,10 @@ class App {
     }
 
     snapshotSave() {
-        this.imgLib.snapshotSave();
+        wasm.snapshot_save();
     }
     snapshotRestore() {
-        this.imgLib.snapshotRestore();
+        wasm.snapshot_restore();
         this.reflectLibToCanvas();
     }
 

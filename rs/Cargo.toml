@@ -5,7 +5,20 @@ version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
-rapid-qoi = {version = "0.5.5"}
-mpic = { git = "https://github.com/neri/mpic" }
+js-sys = "0.3.65"
+wasm-bindgen = "0.2.87"
+
+mpic = {git = "https://github.com/neri/mpic"}
+rapid-qoi = "0.5.5"
 # mpic = { path = "../../mpic" }
+
+[dependencies.web-sys]
+version = "0.3.65"
+features = [
+  "ImageData",
+  "CanvasRenderingContext2d",
+]

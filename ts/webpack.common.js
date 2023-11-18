@@ -19,6 +19,7 @@ module.exports = {
     },
     output: {
         clean: true,
+        filename: '[name].[contenthash].js',
     },
     experiments: {
         asyncWebAssembly: true,
@@ -29,7 +30,7 @@ module.exports = {
     plugins: [
         new webpack.LoaderOptionsPlugin({
             options: {
-                exprimnet: {
+                experiments: {
                     asyncWebAssembly: true
                 }
             }
