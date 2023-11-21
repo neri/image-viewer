@@ -14,6 +14,7 @@ wasm-bindgen = "0.2.87"
 
 mpic = {git = "https://github.com/neri/mpic"}
 rapid-qoi = "0.5.5"
+png = "0.17.10"
 # mpic = { path = "../../mpic" }
 
 [dependencies.web-sys]

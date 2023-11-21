@@ -60,6 +60,11 @@ pub fn set_image_has_alpha(value: bool) {
 }
 
 #[wasm_bindgen]
+pub fn image_is_grayscale() -> bool {
+    image_info().is_grayscale
+}
+
+#[wasm_bindgen]
 pub fn set_image_buffer(buffer: &[u8], width: u32, height: u32) -> bool {
     snapshot_clear();
     _set_image_buffer(buffer, width, height)
@@ -78,7 +83,7 @@ fn _set_image_buffer(buffer: &[u8], width: u32, height: u32) -> bool {
         return false;
     }
 
-    for rgba in ib.chunks(4) {
+    for rgba in ib.chunks_exact(4) {
         let p = rgba[3];
         if p != u8::MAX {
             info.transparency = Transparency::Translucent;
@@ -107,6 +112,7 @@ pub fn draw_to_canvas(context: &CanvasRenderingContext2d) -> bool {
 pub enum ImageType {
     Qoi,
     Mpic,
+    Png,
 }
 
 #[wasm_bindgen]
@@ -114,6 +120,7 @@ pub fn image_type_to_string(val: ImageType) -> String {
     match val {
         ImageType::Qoi => "qoi".to_owned(),
         ImageType::Mpic => "mpic".to_owned(),
+        ImageType::Png => "png".to_owned(),
     }
 }
 
@@ -130,7 +137,7 @@ pub fn decode(buffer: &[u8]) -> bool {
             if has_alpha {
                 ob.extend_from_slice(buffer.as_slice());
             } else {
-                for rgb in buffer.chunks(3) {
+                for rgb in buffer.chunks_exact(3) {
                     ob.extend_from_slice(rgb);
                     ob.push(u8::MAX);
                 }
@@ -180,7 +187,7 @@ pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
             } else {
                 let buffer_size = info.number_of_pixels() * 3;
                 let mut vec = Vec::with_capacity(buffer_size);
-                for rgba in ib.chunks(4) {
+                for rgba in ib.chunks_exact(4) {
                     vec.push(rgba[0]);
                     vec.push(rgba[1]);
                     vec.push(rgba[2]);
@@ -195,13 +202,54 @@ pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
 
             let buffer_size = info.number_of_pixels() * 3;
             let mut vec = Vec::with_capacity(buffer_size);
-            for rgba in ib.chunks(4) {
+            for rgba in ib.chunks_exact(4) {
                 vec.push(rgba[0]);
                 vec.push(rgba[1]);
                 vec.push(rgba[2]);
             }
 
             mpic::Encoder::encode(vec.as_slice(), info.width as u32, info.height as u32).ok()
+        }
+        ImageType::Png => {
+            let ib = image_buffer();
+            let info = image_info();
+            let mut buffer = Vec::new();
+
+            let (color_type, ib) = match (info.is_grayscale, info.is_translucent()) {
+                (false, false) => {
+                    for rgba in ib.chunks_exact(4) {
+                        buffer.push(rgba[0]);
+                        buffer.push(rgba[1]);
+                        buffer.push(rgba[2]);
+                    }
+                    (png::ColorType::Rgb, &buffer)
+                }
+                (false, true) => (png::ColorType::Rgba, &*ib),
+                (true, false) => {
+                    for rgba in ib.chunks_exact(4) {
+                        buffer.push(rgba[0]);
+                    }
+                    (png::ColorType::Grayscale, &buffer)
+                }
+                (true, true) => {
+                    for rgba in ib.chunks_exact(4) {
+                        buffer.push(rgba[0]);
+                        buffer.push(rgba[3]);
+                    }
+                    (png::ColorType::GrayscaleAlpha, &buffer)
+                }
+            };
+
+            let mut ob = Vec::new();
+            let mut encoder = png::Encoder::new(&mut ob, info.width, info.height);
+            encoder.set_depth(png::BitDepth::Eight);
+            encoder.set_color(color_type);
+            encoder.set_compression(png::Compression::Best);
+            let mut writer = encoder.write_header().ok()?;
+            writer.write_image_data(&ib).ok()?;
+            writer.finish().ok()?;
+
+            Some(ob)
         }
     }
 }
@@ -220,22 +268,22 @@ pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
         return false;
     }
 
-    let magic_number = 4;
+    const MAGIC_NUMBER: usize = 4;
     let mut ob = Vec::new();
     if ob
-        .try_reserve(width as usize * height as usize * magic_number)
+        .try_reserve(width as usize * height as usize * MAGIC_NUMBER)
         .is_err()
     {
         return false;
     }
-    let offset = (old_info.width as usize * y as usize) * magic_number;
-    let line_offset = x as usize * magic_number;
-    let line_range = line_offset..line_offset + width as usize * magic_number;
+    let offset = (old_info.width as usize * y as usize) * MAGIC_NUMBER;
+    let line_offset = x as usize * MAGIC_NUMBER;
+    let line_range = line_offset..line_offset + width as usize * MAGIC_NUMBER;
     let Some(ib) = image_buffer().get(offset..) else {
         return false;
     };
     for (line, _) in ib
-        .chunks(old_info.width as usize * magic_number)
+        .chunks_exact(old_info.width as usize * MAGIC_NUMBER)
         .zip(0..height)
     {
         let Some(line) = line.get(line_range.clone()) else {
@@ -276,10 +324,10 @@ pub fn scale(width: u32, height: u32, mode: ScaleMode) -> bool {
         return false;
     }
 
-    let magic_number = 4;
+    const MAGIC_NUMBER: usize = 4;
     let mut ob = Vec::new();
     if ob
-        .try_reserve(width as usize * height as usize * magic_number)
+        .try_reserve(width as usize * height as usize * MAGIC_NUMBER)
         .is_err()
     {
         return false;
@@ -519,6 +567,64 @@ pub fn scale_reduction(ob: &mut Vec<u8>, width: u32, height: u32) {
 }
 
 #[wasm_bindgen]
+pub fn grayscale(mode: GrayScaleMode) -> bool {
+    let info = image_info();
+    if !info.is_grayscale {
+        info.is_grayscale = true;
+        match mode {
+            GrayScaleMode::Average => {
+                let ib = image_buffer();
+                for pixel in ib.chunks_exact_mut(4) {
+                    let r = pixel[0] as usize;
+                    let g = pixel[1] as usize;
+                    let b = pixel[2] as usize;
+                    let gray = ((r + g + b) / 3) as u8;
+                    pixel[0] = gray;
+                    pixel[1] = gray;
+                    pixel[2] = gray;
+                }
+                return true;
+            }
+            GrayScaleMode::Brightness => {
+                let ib = image_buffer();
+                for pixel in ib.chunks_exact_mut(4) {
+                    let r = pixel[0];
+                    let g = pixel[1];
+                    let b = pixel[2];
+                    let gray = r.max(g).max(b);
+                    pixel[0] = gray;
+                    pixel[1] = gray;
+                    pixel[2] = gray;
+                }
+                return true;
+            }
+            GrayScaleMode::Luminance => {
+                let ib = image_buffer();
+                for pixel in ib.chunks_exact_mut(4) {
+                    let r = pixel[0] as u32;
+                    let g = pixel[1] as u32;
+                    let b = pixel[2] as u32;
+                    let gray = ((r * 77 + g * 150 + b * 29) / 256) as u8;
+                    pixel[0] = gray;
+                    pixel[1] = gray;
+                    pixel[2] = gray;
+                }
+                return true;
+            }
+        }
+    }
+    false
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum GrayScaleMode {
+    Average,
+    Brightness,
+    Luminance,
+}
+
+#[wasm_bindgen]
 pub fn snapshot_clear() {
     snapshot_info().take();
 
@@ -557,6 +663,7 @@ pub fn snapshot_restore() -> bool {
 pub struct ImageInfo {
     width: u32,
     height: u32,
+    is_grayscale: bool,
     transparency: Transparency,
 }
 
@@ -566,6 +673,7 @@ impl ImageInfo {
         Self {
             width: 0,
             height: 0,
+            is_grayscale: false,
             transparency: Transparency::Opaque,
         }
     }
@@ -575,6 +683,7 @@ impl ImageInfo {
         Self {
             width,
             height,
+            is_grayscale: false,
             transparency,
         }
     }
@@ -587,6 +696,11 @@ impl ImageInfo {
     #[inline]
     pub const fn image_size(&self) -> usize {
         self.number_of_pixels() * 4
+    }
+
+    #[inline]
+    pub fn is_translucent(&self) -> bool {
+        matches!(self.transparency, Transparency::Translucent)
     }
 }
 

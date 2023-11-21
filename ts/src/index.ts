@@ -175,10 +175,42 @@ class App {
             }
         }
 
+        ($('#reduceMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.snapshotSave();
+                Dialog.dismissAll();
+                new ReduceDialog().show();
+            }
+        });
+
+        ($('#grayAverageButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.performGrayscale(wasm.GrayScaleMode.Average);
+            }
+        });
+
+        ($('#grayBrightnessButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.performGrayscale(wasm.GrayScaleMode.Brightness);
+            }
+        });
+
+        ($('#grayLuminanceButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.performGrayscale(wasm.GrayScaleMode.Luminance);
+            }
+        });
+
+        ($('#reduceResetButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            this.snapshotRestore();
+        });
+
+
         ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             const canvas = this.validCanvas();
             if (canvas !== null) {
-                this.exportImage(canvas);
+                // this.exportImage(canvas);
+                this.exportEncoded(wasm.ImageType.Png);
             }
         });
 
@@ -282,6 +314,10 @@ class App {
                 wasm.draw_to_canvas(ctx);
             }
             this.updateInfo(name, width, height);
+            const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
+            if (checkSaveAlpha !== null) {
+                checkSaveAlpha.checked = wasm.image_has_alpha();
+            }
             Dialog.dismissAll();
         } else {
             const img = new Image();
@@ -324,13 +360,13 @@ class App {
         tag.click();
     }
 
-    exportImage(canvas: HTMLCanvasElement) {
-        const dataUrl = canvas.toDataURL('image/png');
-        const tag = document.createElement('a') as HTMLAnchorElement;
-        tag.href = dataUrl;
-        tag.download = `${this.baseName}.png`;
-        tag.click();
-    }
+    // exportImage(canvas: HTMLCanvasElement) {
+    //     const dataUrl = canvas.toDataURL('image/png');
+    //     const tag = document.createElement('a') as HTMLAnchorElement;
+    //     tag.href = dataUrl;
+    //     tag.download = `${this.baseName}.png`;
+    //     tag.click();
+    // }
 
     validCanvas(): HTMLCanvasElement | null {
         const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
@@ -411,6 +447,18 @@ class App {
             this.reflectLibToCanvas();
         } else {
             alert('Scale failed');
+        }
+    }
+
+    performGrayscale(mode: wasm.GrayScaleMode) {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return;
+        }
+        if (wasm.grayscale(mode)) {
+            this.reflectLibToCanvas();
+        } else {
+            alert('Gray Scale failed');
         }
     }
 
@@ -765,6 +813,22 @@ class ScaleDialog extends Dialog {
         ($('#scalePercent') as HTMLInputElement).value = percent.toString();
     }
 
+}
+
+class ReduceDialog extends Dialog {
+    private static inShow = false;
+    constructor() {
+        super('dialogReduce', "Reduce Color", "ic_palette");
+    }
+    onShow(): void {
+        super.onShow();
+        ReduceDialog.inShow = true;
+        // ReduceDialog.update();
+    }
+    onClose(): void {
+        super.onClose();
+        ReduceDialog.inShow = false;
+    }
 }
 
 

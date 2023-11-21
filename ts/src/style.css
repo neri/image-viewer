@@ -340,6 +340,16 @@ nav li {
     background-size: 18px 18px;
 }
 
+#ic_palette {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: url('../../ext/material-design-icons/ic_palette_black_18dp.png') no-repeat;
+    background-size: 18px 18px;
+}
+
 #ic_transform {
     display: inline-block;
     min-width: 18px;
