@@ -47,15 +47,15 @@
                 </a>
             </li>
             <li>
+                <a id="reduceMenuButton" class="button">
+                    <span id="ic_palette">&nbsp;</span>
+                    Reduce Color...
+                </a>
+            </li>
+            <li>
                 <fieldset>
                     <legend><span id="ic_cloud_download">&nbsp;</span> Export as...</legend>
                     <ul>
-                        <li>
-                            <label title="Save Alpha Channel if Possible">
-                                <input id="checkSaveAlpha" type="checkbox">
-                                Alpha Channel
-                            </label>
-                        </li>
                         <li>
                             <a id="savePngButton" class="button">.PNG</a>
                         </li>
@@ -156,6 +156,28 @@
         <hr>
         <a class="buttonActive" id="scaleExecButton">Scale</a>
         <a class="button" id="scaleResetButton">Reset</a>
+    </div>
+
+    <div id="dialogReduce" class="dialogSeed">
+
+        <!-- <label>
+            Target Number of Colors:
+            <input id="" type="number" inputmode="numeric" class="scale" value="256" step="1" min="2" max="256">
+        </label><br> -->
+
+        <fieldset>
+            <legend>Gray Scale</legend>
+            <a class="button" id="grayLuminanceButton">Luminance</a>
+            <a class="button" id="grayBrightnessButton">Brightness</a>
+            <a class="button" id="grayAverageButton">Average</a><br>
+        </fieldset>
+
+        <a class="button" id="makeOpaqueButton">Make the background opaque</a><br>
+
+        <!-- <a class="button" id="">Web Safe Color</a><br> -->
+
+        <hr>
+        <a class="button" id="reduceResetButton">Reset</a>
     </div>
 
     <div id="dialogAbout" class="dialogSeed">

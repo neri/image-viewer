@@ -51,12 +51,7 @@ pub fn image_height() -> u32 {
 
 #[wasm_bindgen]
 pub fn image_has_alpha() -> bool {
-    image_info().transparency.into()
-}
-
-#[wasm_bindgen]
-pub fn set_image_has_alpha(value: bool) {
-    image_info().transparency = value.into();
+    image_info().is_translucent()
 }
 
 #[wasm_bindgen]
@@ -217,6 +212,7 @@ pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
 
             let (color_type, ib) = match (info.is_grayscale, info.is_translucent()) {
                 (false, false) => {
+                    buffer.reserve(info.number_of_pixels() * 3);
                     for rgba in ib.chunks_exact(4) {
                         buffer.push(rgba[0]);
                         buffer.push(rgba[1]);
@@ -226,12 +222,14 @@ pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
                 }
                 (false, true) => (png::ColorType::Rgba, &*ib),
                 (true, false) => {
+                    buffer.reserve(info.number_of_pixels());
                     for rgba in ib.chunks_exact(4) {
                         buffer.push(rgba[0]);
                     }
                     (png::ColorType::Grayscale, &buffer)
                 }
                 (true, true) => {
+                    buffer.reserve(info.number_of_pixels() * 2);
                     for rgba in ib.chunks_exact(4) {
                         buffer.push(rgba[0]);
                         buffer.push(rgba[3]);
@@ -567,7 +565,7 @@ pub fn scale_reduction(ob: &mut Vec<u8>, width: u32, height: u32) {
 }
 
 #[wasm_bindgen]
-pub fn grayscale(mode: GrayScaleMode) -> bool {
+pub fn grayscale(mode: GrayScaleMode) {
     let info = image_info();
     if !info.is_grayscale {
         info.is_grayscale = true;
@@ -583,7 +581,6 @@ pub fn grayscale(mode: GrayScaleMode) -> bool {
                     pixel[1] = gray;
                     pixel[2] = gray;
                 }
-                return true;
             }
             GrayScaleMode::Brightness => {
                 let ib = image_buffer();
@@ -596,24 +593,58 @@ pub fn grayscale(mode: GrayScaleMode) -> bool {
                     pixel[1] = gray;
                     pixel[2] = gray;
                 }
-                return true;
             }
             GrayScaleMode::Luminance => {
                 let ib = image_buffer();
                 for pixel in ib.chunks_exact_mut(4) {
-                    let r = pixel[0] as u32;
-                    let g = pixel[1] as u32;
-                    let b = pixel[2] as u32;
-                    let gray = ((r * 77 + g * 150 + b * 29) / 256) as u8;
+                    let r = pixel[0];
+                    let g = pixel[1];
+                    let b = pixel[2];
+                    let gray = luminance(r, g, b);
                     pixel[0] = gray;
                     pixel[1] = gray;
                     pixel[2] = gray;
                 }
-                return true;
             }
         }
     }
-    false
+}
+
+#[wasm_bindgen]
+pub fn image_is_dark(threshold: u8) -> bool {
+    let ib = image_buffer();
+
+    let levels = ib.chunks_exact(4).fold((0, 0), |lhs, rhs| {
+        if rhs[3] > 64 {
+            let l = luminance(rhs[0], rhs[1], rhs[2]) as u64;
+            (lhs.0 + l, lhs.1 + threshold as u64)
+        } else {
+            lhs
+        }
+    });
+
+    levels.0 < levels.1
+}
+
+#[wasm_bindgen(js_name = makeOpaque)]
+pub fn make_opaque() {
+    let info = image_info();
+    if info.is_opaque() {
+        return;
+    }
+    info.transparency = Transparency::Opaque;
+
+    let bg_color = if image_is_dark(0xC0) {
+        [0xFF; 4]
+    } else {
+        [0u8, 0u8, 0u8, 0xFF]
+    };
+
+    let ib = image_buffer();
+    for pixel in ib.chunks_exact_mut(4) {
+        let pixel: &mut [u8; 4] = pixel.try_into().unwrap();
+        *pixel = blending(bg_color, *pixel);
+    }
 }
 
 #[wasm_bindgen]
@@ -700,7 +731,12 @@ impl ImageInfo {
 
     #[inline]
     pub fn is_translucent(&self) -> bool {
-        matches!(self.transparency, Transparency::Translucent)
+        !self.is_opaque()
+    }
+
+    #[inline]
+    pub fn is_opaque(&self) -> bool {
+        matches!(self.transparency, Transparency::Opaque)
     }
 }
 
@@ -732,5 +768,49 @@ impl From<Transparency> for bool {
             Transparency::Opaque => false,
             Transparency::Translucent => true,
         }
+    }
+}
+
+#[inline]
+pub fn luminance(r: u8, g: u8, b: u8) -> u8 {
+    let r = r as usize;
+    let g = g as usize;
+    let b = b as usize;
+    ((r * 77 + g * 150 + b * 29) / 256) as u8
+}
+
+pub fn blending(lhs: [u8; 4], rhs: [u8; 4]) -> [u8; 4] {
+    const TRANSPARENT: u8 = 0;
+    const OPAQUE: u8 = u8::MAX;
+
+    let ra = rhs[3];
+    if ra == OPAQUE {
+        return rhs;
+    } else if ra == TRANSPARENT {
+        return lhs;
+    }
+
+    let rr = rhs[0] as usize;
+    let rg = rhs[1] as usize;
+    let rb = rhs[2] as usize;
+
+    let lr = lhs[0] as usize;
+    let lg = lhs[1] as usize;
+    let lb = lhs[2] as usize;
+    let la = lhs[3] as usize;
+
+    let ra = ra as usize;
+    let la = la * (256 - ra) / 256;
+    let sa = ra + la;
+
+    if sa > 0 {
+        [
+            ((lr * la + rr * ra) / sa) as u8,
+            ((lg * la + rg * ra) / sa) as u8,
+            ((lb * la + rb * ra) / sa) as u8,
+            sa as u8,
+        ]
+    } else {
+        [0; 4]
     }
 }

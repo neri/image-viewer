@@ -13,7 +13,7 @@
 | ------------------------------------ | ---- | ---- | ------------------------------------------------ |
 | [QOI](https://qoiformat.org/)        | ✅    | ✅    | Alpha channel support                            |
 | [MPIC](https://github.com/neri/mpic) | ✅    | ✅    |                                                  |
-| PNG                                  | ✅    | ✅    | Via the IMG tag                                  |
+| PNG                                  | ✅    | ✅    | Load via IMG tag, save via wasm                  |
 | other                                | ✅    |      | Other formats supported by the browser's IMG tag |
 
 ## Requirements

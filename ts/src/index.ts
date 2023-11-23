@@ -201,6 +201,12 @@ class App {
             }
         });
 
+        ($('#makeOpaqueButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.makeOpaque();
+            }
+        });
+
         ($('#reduceResetButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             this.snapshotRestore();
         });
@@ -314,10 +320,6 @@ class App {
                 wasm.draw_to_canvas(ctx);
             }
             this.updateInfo(name, width, height);
-            const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
-            if (checkSaveAlpha !== null) {
-                checkSaveAlpha.checked = wasm.image_has_alpha();
-            }
             Dialog.dismissAll();
         } else {
             const img = new Image();
@@ -340,11 +342,6 @@ class App {
     }
 
     exportEncoded(type: wasm.ImageType) {
-        const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
-        if (checkSaveAlpha !== null) {
-            wasm.set_image_has_alpha(checkSaveAlpha.checked);
-        }
-
         const data = wasm.encode(type);
         if (!(data instanceof Uint8Array)) {
             alert("ENCODE ERROR");
@@ -385,11 +382,6 @@ class App {
         }
         const imgData = ctx.getImageData(0, 0, width, height);
         wasm.set_image_buffer(new Uint8Array(imgData.data), width, height);
-
-        const checkSaveAlpha = $('#checkSaveAlpha') as HTMLInputElement | null;
-        if (checkSaveAlpha !== null) {
-            checkSaveAlpha.checked = wasm.image_has_alpha();
-        }
     }
 
     reflectLibToCanvas() {
@@ -455,11 +447,17 @@ class App {
         if (canvas === null) {
             return;
         }
-        if (wasm.grayscale(mode)) {
-            this.reflectLibToCanvas();
-        } else {
-            alert('Gray Scale failed');
+        wasm.grayscale(mode);
+        this.reflectLibToCanvas();
+    }
+
+    makeOpaque() {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return;
         }
+        wasm.makeOpaque();
+        this.reflectLibToCanvas();
     }
 
     snapshotSave() {
@@ -665,12 +663,14 @@ class AlertDialog extends Dialog {
 
 class CropDialog extends Dialog {
     private static inShow = false;
+    private static isDark = false;
     constructor() {
         super('dialogCrop', "Resize (Crop)", "ic_crop");
     }
     onShow(): void {
         super.onShow();
         CropDialog.inShow = true;
+        CropDialog.isDark = wasm.image_is_dark(0x40);
         CropDialog.update();
     }
     onClose(): void {
@@ -710,11 +710,20 @@ class CropDialog extends Dialog {
         if (ctx === null) {
             return
         }
-        ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
         if (CropDialog.inShow) {
-            ctx.strokeStyle = "black";
+            ctx.fillStyle = "rgba(0.5, 0.5, 0.5, 0.5)";
+            ctx.fillRect(0, 0, handleCanvas.width, handleCanvas.height);
+
+            if (CropDialog.isDark) {
+                ctx.strokeStyle = "white";
+            } else {
+                ctx.strokeStyle = "black";
+            }
             ctx.lineWidth = 1;
             ctx.strokeRect(frame.x, frame.y, frame.width + 2, frame.height + 2);
+            ctx.clearRect(frame.x + 1, frame.y + 1, frame.width, frame.height);
+        } else {
+            ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
         }
     }
     static setRatio(numerator: number, denominator: number) {
@@ -823,11 +832,13 @@ class ReduceDialog extends Dialog {
     onShow(): void {
         super.onShow();
         ReduceDialog.inShow = true;
-        // ReduceDialog.update();
+        ReduceDialog.update();
     }
     onClose(): void {
         super.onClose();
         ReduceDialog.inShow = false;
+    }
+    static update() {
     }
 }
 
