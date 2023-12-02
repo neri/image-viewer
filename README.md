@@ -1,20 +1,20 @@
-# Online Image Viewer
+# Online Image Tools
 
 - [Launch now](https://nerry.jp/image-viewer/)
 - [Repository](https://github.com/neri/image-viewer)
 
 ## Features
 
-- This application can display and save image files using a WebAssembly decoder.
+- This application manipulates images online.
 
 ### Supported Image Format
 
-| Format                               | Load | Save |                                                  |
-| ------------------------------------ | ---- | ---- | ------------------------------------------------ |
-| [QOI](https://qoiformat.org/)        | ✅    | ✅    | Alpha channel support                            |
-| [MPIC](https://github.com/neri/mpic) | ✅    | ✅    |                                                  |
-| PNG                                  | ✅    | ✅    | Load via IMG tag, save via wasm                  |
-| other                                | ✅    |      | Other formats supported by the browser's IMG tag |
+| Format | Load | Save | |
+| - | - | - | - |
+| [QOI](https://qoiformat.org/) | ✅ | ✅ | Alpha channel support |
+| [MPIC](https://github.com/neri/mpic) | ✅ | ✅ | |
+| PNG | ✅ | ✅ | Load via IMG tag, save via wasm |
+| other | ✅ | | Any image format that can be displayed with the IMG tag |
 
 ## Requirements
 
