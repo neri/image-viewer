@@ -1,10 +1,10 @@
-/// Online Image Viewer
+/// Online Image Tools
 ///
 /// Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED
 ///
 /// https://github.com/neri/image-viewer
 ///
-const APP_NAME = "Online Image Viewer";
+const APP_NAME = "Online Image Tools";
 const COPYRIGHT = "Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED.";
 const REPOSITORY_URL = "https://github.com/neri/image-viewer";
 
@@ -201,6 +201,36 @@ class App {
             }
         });
 
+        ($('#posterizeWscButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const fsd = (($('#posterizeMode') as HTMLSelectElement | null)?.value ?? 0) != 0;
+                this.performPosterize(fsd, 6, 6, 6);
+            }
+        });
+
+        ($('#posterizeRgb565Button') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const fsd = (($('#posterizeMode') as HTMLSelectElement | null)?.value ?? 0) != 0;
+                this.performPosterize(fsd, 32, 64, 32);
+            }
+        });
+
+        ($('#posterizeRgb555Button') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const fsd = (($('#posterizeMode') as HTMLSelectElement | null)?.value ?? 0) != 0;
+                this.performPosterize(fsd, 32, 32, 32);
+            }
+        });
+
+        ($('#posterizeButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const fsd = (($('#posterizeMode') as HTMLSelectElement | null)?.value ?? 0) != 0;
+                const bits = parseInt(($('#posterizeBpc') as HTMLInputElement | null)?.value ?? "") ?? 0;
+                const level = 1 << bits;
+                this.performPosterize(fsd, level, level, level);
+            }
+        });
+
         ($('#makeOpaqueButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
                 this.makeOpaque();
@@ -304,6 +334,12 @@ class App {
             document.title = title;
         }
         startText.style.display = 'none';
+
+        const menu2 = ($('#menu2') as HTMLElement | null);
+        if (menu2 !== null) {
+            menu2.style.display = 'block';
+        }
+
         CropDialog.update();
         ScaleDialog.update();
     }
@@ -451,6 +487,15 @@ class App {
         this.reflectLibToCanvas();
     }
 
+    performPosterize(fsd: boolean, red: number, green: number, blue: number) {
+        const canvas = this.validCanvas();
+        if (canvas === null) {
+            return;
+        }
+        wasm.posterize(fsd, red, green, blue);
+        this.reflectLibToCanvas();
+    }
+
     makeOpaque() {
         const canvas = this.validCanvas();
         if (canvas === null) {
@@ -470,7 +515,7 @@ class App {
 
     makeIcon(icon_id: string): HTMLElement {
         const iconElement = document.createElement('span');
-        iconElement.id = icon_id;
+        iconElement.className = icon_id;
         iconElement.appendChild(document.createTextNode("\u00a0"));
         return iconElement;
     }

@@ -243,14 +243,14 @@ nav li {
     margin: 0.5em 0;
 }
 
-#ic_blank {
+.ic_blank {
     display: inline-block;
     width: 18px;
     height: 18px;
     padding: 0;
 }
 
-#ic_cloud_download {
+.ic_cloud_download {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -260,7 +260,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_crop {
+.ic_crop {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -270,7 +270,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_folder_open {
+.ic_folder_open {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -280,7 +280,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_error {
+.ic_error {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -290,7 +290,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_launch {
+.ic_launch {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -300,7 +300,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_menu {
+.ic_menu {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -310,7 +310,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_menu_white {
+.ic_menu_white {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -320,7 +320,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_palette {
+.ic_palette {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;
@@ -330,7 +330,7 @@ nav li {
     background-size: 18px 18px;
 }
 
-#ic_transform {
+.ic_transform {
     display: inline-block;
     min-width: 18px;
     min-height: 18px;

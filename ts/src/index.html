@@ -9,7 +9,7 @@
 
 <body style="display: none;">
     <header>
-        <a id="menuButton"><span id="ic_menu_white">&nbsp;</span></a>
+        <a id="menuButton"><span class="ic_menu_white">&nbsp;</span></a>
         <span id="titleText">&nbsp;</span>
     </header>
 
@@ -28,33 +28,35 @@
             <li>
                 <label>
                     <a id="loadButton" class="button">
-                        <span id="ic_folder_open">&nbsp;</span>
+                        <span class="ic_folder_open">&nbsp;</span>
                         Open...
                     </a>
                     <input id="fileLocal" type="file" style="display: none;">
                 </label>
             </li>
+        </ul>
+        <ul id="menu2" style="display: none;">
             <li>
                 <a id="cropMenuButton" class="button">
-                    <span id="ic_crop">&nbsp;</span>
+                    <span class="ic_crop">&nbsp;</span>
                     Resize (Crop)...
                 </a>
             </li>
             <li>
                 <a id="scaleMenuButton" class="button">
-                    <span id="ic_transform">&nbsp;</span>
+                    <span class="ic_transform">&nbsp;</span>
                     Resize (Scale)...
                 </a>
             </li>
             <li>
                 <a id="reduceMenuButton" class="button">
-                    <span id="ic_palette">&nbsp;</span>
+                    <span class="ic_palette">&nbsp;</span>
                     Reduce Color...
                 </a>
             </li>
             <li>
                 <fieldset>
-                    <legend><span id="ic_cloud_download">&nbsp;</span> Export as...</legend>
+                    <legend><span class="ic_cloud_download">&nbsp;</span> Export as...</legend>
                     <ul>
                         <li>
                             <a id="savePngButton" class="button">.PNG</a>
@@ -68,9 +70,11 @@
                     </ul>
                 </fieldset>
             </li>
+        </ul>
+        <ul>
             <li>
                 <a class="button" id="aboutMenuButton">
-                    <span id="ic_blank">&nbsp;</span>
+                    <span class="ic_blank">&nbsp;</span>
                     About...
                 </a>
             </li>
@@ -113,7 +117,7 @@
         </fieldset>
         <hr>
         <a class="buttonActive" id="cropExecButton">Crop</a>
-        <a class="button" id="cropResetButton">Reset</a>
+        <a class="button" id="cropResetButton">Reset Crop</a>
     </div>
 
     <div id="dialogScale" class="dialogSeed">
@@ -155,15 +159,10 @@
         </fieldset>
         <hr>
         <a class="buttonActive" id="scaleExecButton">Scale</a>
-        <a class="button" id="scaleResetButton">Reset</a>
+        <a class="button" id="scaleResetButton">Reset Scale</a>
     </div>
 
     <div id="dialogReduce" class="dialogSeed">
-
-        <!-- <label>
-            Target Number of Colors:
-            <input id="" type="number" inputmode="numeric" class="scale" value="256" step="1" min="2" max="256">
-        </label><br> -->
 
         <fieldset>
             <legend>Gray Scale</legend>
@@ -172,12 +171,32 @@
             <a class="button" id="grayAverageButton">Average</a><br>
         </fieldset>
 
-        <a class="button" id="makeOpaqueButton">Make the background opaque</a><br>
+        <fieldset>
+            <legend>Posterize / Reduce Color</legend>
 
-        <!-- <a class="button" id="">Web Safe Color</a><br> -->
+            <label>
+                Mode:
+                <select id="posterizeMode">
+                    <option value="0">Posterize</option>
+                    <option value="1">Dithering (Floyd Steinberg)</option>
+                </select>
+            </label><br>
+
+            Bits per Channel:
+            <input id="posterizeBpc" type="number" inputmode="numeric" class="scale" value="5" step="1" min="1" max="7">
+            <a class="button" id="posterizeButton">Reduce Color</a>
+            <br>
+
+            <a class="button" id="posterizeWscButton">Web Safe Color</a>
+            <a class="button" id="posterizeRgb565Button">RGB565</a>
+            <a class="button" id="posterizeRgb555Button">RGB555</a>
+
+        </fieldset>
+
+        <a class="button" id="makeOpaqueButton">Make the background Opaque</a><br>
 
         <hr>
-        <a class="button" id="reduceResetButton">Reset</a>
+        <a class="button" id="reduceResetButton">Reset Color</a>
     </div>
 
     <div id="dialogAbout" class="dialogSeed">
