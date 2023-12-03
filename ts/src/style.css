@@ -256,7 +256,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_cloud_download_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_cloud_download_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_cloud_download_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -266,17 +266,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_crop_black_18dp.png') no-repeat;
-    background-size: 18px 18px;
-}
-
-#ic_file_download {
-    display: inline-block;
-    min-width: 18px;
-    min-height: 18px;
-    vertical-align: middle;
-    padding: 0;
-    background: url('../../ext/material-design-icons/ic_file_download_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_crop_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_crop_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -286,7 +276,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_folder_open_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_folder_open_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_folder_open_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -296,17 +286,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_error_black_18dp.png') no-repeat;
-    background-size: 18px 18px;
-}
-
-#ic_image {
-    display: inline-block;
-    min-width: 18px;
-    min-height: 18px;
-    vertical-align: middle;
-    padding: 0;
-    background: url('../../ext/material-design-icons/ic_image_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_error_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_error_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -316,7 +296,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_launch_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_launch_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_launch_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -326,7 +306,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_menu_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_menu_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_menu_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -336,7 +316,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_menu_white_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_menu_white_18dp.png') 1x, url('../../ext/material-design-icons/ic_menu_white_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -346,7 +326,7 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_palette_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_palette_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_palette_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
 
@@ -356,6 +336,6 @@ nav li {
     min-height: 18px;
     vertical-align: middle;
     padding: 0;
-    background: url('../../ext/material-design-icons/ic_transform_black_18dp.png') no-repeat;
+    background: image-set(url('../../ext/material-design-icons/ic_transform_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_transform_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
