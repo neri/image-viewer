@@ -1,8 +1,8 @@
 [workspace]
+resolver = "2"
 members = [
   "rs",
 ]
-resolver = "2"
 
 [profile.release]
 lto = true

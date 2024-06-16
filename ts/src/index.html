@@ -1,211 +1,209 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 
 <head>
-    <meta charset="utf-8">
+    <title>*</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="theme-color" content="#37474F" />
 </head>
 
-<body style="display: none;">
-    <header>
-        <a id="menuButton"><span class="ic_menu_white">&nbsp;</span></a>
-        <span id="titleText">&nbsp;</span>
-    </header>
+<header>
+    <a id="menuButton"><span class="ic_menu_white">&nbsp;</span></a>
+    <input id="titleInput" value="" placeholder="Enter New Name" hidden>
+    <span id="titleText">&nbsp;</span>
+</header>
 
-    <div id="main">
-        <div id="startText">Drag and drop a file here or select from the menu.</div>
-        <canvas id="mainCanvas" width="0" height="0"></canvas>
-        <canvas id="handleCanvas" width="0" height="0"></canvas>
-    </div>
+<div id="main">
+    <div id="startText">Drag and drop a file here or select from the menu.</div>
+    <canvas id="mainCanvas" width="0" height="0"></canvas>
+    <canvas id="handleCanvas" width="0" height="0"></canvas>
+</div>
 
-    <div id="dialogAlert" class="dialogSeed">
-        <p id="alertMessage"></p>
-    </div>
+<div id="dialogAlert" class="dialogSeed">
+    <p id="alertMessage"></p>
+</div>
 
-    <nav id="dialogMainMenu" class="dialogSeed">
-        <ul>
-            <li>
-                <label>
-                    <a id="loadButton" class="button">
-                        <span class="ic_folder_open">&nbsp;</span>
-                        Open...
-                    </a>
-                    <input id="fileLocal" type="file" style="display: none;">
-                </label>
-            </li>
-        </ul>
-        <ul id="menu2" style="display: none;">
-            <li>
-                <a id="cropMenuButton" class="button">
-                    <span class="ic_crop">&nbsp;</span>
-                    Resize (Crop)...
+<nav id="dialogMainMenu" class="dialogSeed">
+    <ul>
+        <li>
+            <label>
+                <a id="loadButton" class="button">
+                    <span class="ic_folder_open">&nbsp;</span>
+                    Open...
                 </a>
-            </li>
-            <li>
-                <a id="scaleMenuButton" class="button">
-                    <span class="ic_transform">&nbsp;</span>
-                    Resize (Scale)...
-                </a>
-            </li>
-            <li>
-                <a id="reduceMenuButton" class="button">
-                    <span class="ic_palette">&nbsp;</span>
-                    Reduce Color...
-                </a>
-            </li>
-            <li>
-                <fieldset>
-                    <legend><span class="ic_cloud_download">&nbsp;</span> Export as...</legend>
-                    <ul>
-                        <li>
-                            <a id="savePngButton" class="button">.PNG</a>
-                        </li>
-                        <li>
-                            <a id="saveQoiButton" class="button">.QOI</a>
-                        </li>
-                        <li>
-                            <a id="saveMpicButton" class="button">.MPIC</a>
-                        </li>
-                    </ul>
-                </fieldset>
-            </li>
-        </ul>
-        <ul>
-            <li>
-                <a class="button" id="aboutMenuButton">
-                    <span class="ic_blank">&nbsp;</span>
-                    About...
-                </a>
-            </li>
-        </ul>
-    </nav>
-
-    <div id="dialogCrop" class="dialogSeed">
-        <fieldset>
-            <legend>Size</legend>
-            <label>
-                width:
-                <input id="cropWidth" type="number" inputmode="numeric" class="coords">
+                <input id="fileLocal" type="file" style="display: none;">
             </label>
-            <label>
-                height:
-                <input id="cropHeight" type="number" inputmode="numeric" class="coords">
-            </label>
-        </fieldset>
-        <fieldset>
-            <legend>Offset</legend>
-            <label>
-                X:
-                <input id="cropX" type="number" inputmode="numeric" class="coords">
-            </label>
-            <label>
-                Y:
-                <input id="cropY" type="number" inputmode="numeric" class="coords">
-            </label>
-            <a class="button" id="cropCenterButton">center</a>
-        </fieldset>
-        <fieldset>
-            <legend>Preset Ratio</legend>
-            <a class="button" id="cropPreset_1_1">1:1</a>
-            <a class="button" id="cropPreset_3_2">3:2</a>
-            <a class="button" id="cropPreset_4_3">4:3</a>
-            <a class="button" id="cropPreset_16_9">16:9</a>
-            <a class="button" id="cropPreset_2_3">3:2</a>
-            <a class="button" id="cropPreset_3_4">3:4</a>
-            <a class="button" id="cropPreset_9_16">9:16</a>
-        </fieldset>
-        <hr>
-        <a class="buttonActive" id="cropExecButton">Crop</a>
-        <a class="button" id="cropResetButton">Reset Crop</a>
-    </div>
+        </li>
+    </ul>
+    <ul id="menu2" style="display: none;">
+        <li>
+            <a id="cropMenuButton" class="button">
+                <span class="ic_crop">&nbsp;</span>
+                Resize (Crop)...
+            </a>
+        </li>
+        <li>
+            <a id="scaleMenuButton" class="button">
+                <span class="ic_transform">&nbsp;</span>
+                Resize (Scale)...
+            </a>
+        </li>
+        <li>
+            <a id="reduceMenuButton" class="button">
+                <span class="ic_palette">&nbsp;</span>
+                Reduce Color...
+            </a>
+        </li>
+        <li>
+            <fieldset>
+                <legend><span class="ic_cloud_download">&nbsp;</span> Export as...</legend>
+                <ul>
+                    <li>
+                        <a id="savePngButton" class="button">.PNG <sub>(lossless)</sub></a>
+                    </li>
+                    <li>
+                        <a id="saveQoiButton" class="button">.QOI <sub>(lossless)</sub></a>
+                    </li>
+                    <li>
+                        <a id="saveMpicButton" class="button">.MPIC <sub>(lossy)</sub></a>
+                    </li>
+                </ul>
+            </fieldset>
+        </li>
+    </ul>
+    <ul>
+        <li>
+            <a class="button" id="aboutMenuButton">
+                <span class="ic_blank">&nbsp;</span>
+                About...
+            </a>
+        </li>
+    </ul>
+</nav>
 
-    <div id="dialogScale" class="dialogSeed">
-        <fieldset>
-            <legend>Size</legend>
-            <label>
-                width:
-                <input id="scaleWidth" type="number" inputmode="numeric" class="coords">
-            </label>
-            <label>
-                height:
-                <input id="scaleHeight" type="number" inputmode="numeric" class="coords">
-            </label>
-        </fieldset>
-        <p>
-            <label>
-                percent:
-                <input id="scalePercent" type="number" inputmode="numeric" class="scale" min="0" step="1">
-            </label>
-        </p>
-        <p>
-            <label>
-                Interpolation:
-                <select id="scaleMode">
-                    <option value="0">nearest neighbor</option>
-                    <option value="1">bilinear</option>
-                    <option value="2">bicubic</option>
-                </select>
-            </label>
-        </p>
-        <fieldset>
-            <legend>Preset</legend>
-            <a class="button" id="scalePreset_8_1">x8</a>
-            <a class="button" id="scalePreset_4_1">x4</a>
-            <a class="button" id="scalePreset_2_1">x2</a>
-            <a class="button" id="scalePreset_1_2">1/2</a>
-            <a class="button" id="scalePreset_1_4">1/4</a>
-            <a class="button" id="scalePreset_1_8">1/8</a>
-        </fieldset>
-        <hr>
-        <a class="buttonActive" id="scaleExecButton">Scale</a>
-        <a class="button" id="scaleResetButton">Reset Scale</a>
-    </div>
+<div id="dialogCrop" class="dialogSeed">
+    <fieldset>
+        <legend>Size</legend>
+        <label>
+            width:
+            <input id="cropWidth" type="number" inputmode="numeric" class="coords">
+        </label>
+        <label>
+            height:
+            <input id="cropHeight" type="number" inputmode="numeric" class="coords">
+        </label>
+    </fieldset>
+    <fieldset>
+        <legend>Offset</legend>
+        <label>
+            X:
+            <input id="cropX" type="number" inputmode="numeric" class="coords">
+        </label>
+        <label>
+            Y:
+            <input id="cropY" type="number" inputmode="numeric" class="coords">
+        </label>
+        <a class="button" id="cropCenterButton">center</a>
+    </fieldset>
+    <fieldset>
+        <legend>Preset Ratio</legend>
+        <a class="button" id="cropPreset_1_1">1:1</a>
+        <a class="button" id="cropPreset_3_2">3:2</a>
+        <a class="button" id="cropPreset_4_3">4:3</a>
+        <a class="button" id="cropPreset_16_9">16:9</a>
+        <a class="button" id="cropPreset_2_3">3:2</a>
+        <a class="button" id="cropPreset_3_4">3:4</a>
+        <a class="button" id="cropPreset_9_16">9:16</a>
+    </fieldset>
+    <hr>
+    <a class="buttonActive" id="cropExecButton">Crop</a>
+    <a class="button" id="cropResetButton">Reset Crop</a>
+</div>
 
-    <div id="dialogReduce" class="dialogSeed">
+<div id="dialogScale" class="dialogSeed">
+    <fieldset>
+        <legend>Size</legend>
+        <label>
+            width:
+            <input id="scaleWidth" type="number" inputmode="numeric" class="coords">
+        </label>
+        <label>
+            height:
+            <input id="scaleHeight" type="number" inputmode="numeric" class="coords">
+        </label>
+    </fieldset>
+    <p>
+        <label>
+            percent:
+            <input id="scalePercent" type="number" inputmode="numeric" class="scale" min="0" step="1">
+        </label>
+    </p>
+    <p>
+        <label>
+            Interpolation:
+            <select id="scaleMode">
+                <option value="0">nearest neighbor</option>
+                <option value="1">bilinear</option>
+                <option value="2">bicubic</option>
+            </select>
+        </label>
+    </p>
+    <fieldset>
+        <legend>Preset</legend>
+        <a class="button" id="scalePreset_8_1">x8</a>
+        <a class="button" id="scalePreset_4_1">x4</a>
+        <a class="button" id="scalePreset_2_1">x2</a>
+        <a class="button" id="scalePreset_1_2">1/2</a>
+        <a class="button" id="scalePreset_1_4">1/4</a>
+        <a class="button" id="scalePreset_1_8">1/8</a>
+    </fieldset>
+    <hr>
+    <a class="buttonActive" id="scaleExecButton">Scale</a>
+    <a class="button" id="scaleResetButton">Reset Scale</a>
+</div>
 
-        <fieldset>
-            <legend>Gray Scale</legend>
-            <a class="button" id="grayLuminanceButton">Luminance</a>
-            <a class="button" id="grayBrightnessButton">Brightness</a>
-            <a class="button" id="grayAverageButton">Average</a><br>
-        </fieldset>
+<div id="dialogReduce" class="dialogSeed">
 
-        <fieldset>
-            <legend>Posterize / Reduce Color</legend>
+    <fieldset>
+        <legend>Gray Scale</legend>
+        <a class="buttonActive" id="grayLuminanceButton">Luminance</a>
+        <a class="buttonActive" id="grayBrightnessButton">Brightness</a>
+        <a class="buttonActive" id="grayAverageButton">Average</a><br>
+    </fieldset>
 
-            <label>
-                Mode:
-                <select id="posterizeMode">
-                    <option value="0">Posterize</option>
-                    <option value="1">Dithering (Floyd Steinberg)</option>
-                </select>
-            </label><br>
+    <fieldset>
+        <legend>Posterize / Reduce Color</legend>
 
-            Bits per Channel:
-            <input id="posterizeBpc" type="number" inputmode="numeric" class="scale" value="5" step="1" min="1" max="7">
-            <a class="button" id="posterizeButton">Reduce Color</a>
-            <br>
+        <label>
+            Mode:
+            <select id="posterizeMode">
+                <option value="0">Posterize</option>
+                <option value="1">Dithering (Floyd Steinberg)</option>
+            </select>
+        </label><br>
 
-            <a class="button" id="posterizeWscButton">Web Safe Color</a>
-            <a class="button" id="posterizeRgb565Button">RGB565</a>
-            <a class="button" id="posterizeRgb555Button">RGB555</a>
+        Bits per Channel:
+        <input id="posterizeBpc" type="number" inputmode="numeric" class="scale" value="5" step="1" min="1" max="7">
+        <a class="buttonActive" id="posterizeButton">Reduce Color</a>
+        <br>
 
-        </fieldset>
+        <a class="buttonActive" id="posterizeWscButton">Web Safe Color</a>
+        <a class="buttonActive" id="posterizeRgb565Button">RGB565</a>
+        <a class="buttonActive" id="posterizeRgb555Button">RGB555</a>
 
-        <a class="button" id="makeOpaqueButton">Make the background Opaque</a><br>
+    </fieldset>
 
-        <hr>
-        <a class="button" id="reduceResetButton">Reset Color</a>
-    </div>
+    <a class="buttonActive" id="makeOpaqueButton">Make the background Opaque</a><br>
 
-    <div id="dialogAbout" class="dialogSeed">
-        <h1><span class="app_name">&nbsp;</span></h1>
-        <p><span class="copyright"></span></p>
-        <hr>
-        <span class="repository_button"></span>
-    </div>
+    <hr>
+    <a class="button" id="reduceResetButton">Reset Color</a>
+</div>
 
-</body>
+<div id="dialogAbout" class="dialogSeed">
+    <h1><span class="app_name">&nbsp;</span></h1>
+    <p><span class="copyright"></span></p>
+    <hr>
+    <span class="repository_button"></span>
+</div>
 
 </html>

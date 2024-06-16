@@ -410,7 +410,7 @@ pub fn scale_linear(info: &ImageInfo, ib: &[u8], ob: &mut Vec<u8>, width: u32, h
                 + c * (y_frac) * (1.0 - x_frac)
                 + d * (x_frac * y_frac);
 
-            result[i] = q.clamp(0.0, 255.0) as u8;
+            result[i] = q as u8;
         }
 
         result
@@ -498,7 +498,7 @@ pub fn scale_cubic(info: &ImageInfo, ib: &[u8], ob: &mut Vec<u8>, width: u32, he
             );
             let q = cubic_hermite(c0, c1, c2, c3, y_frac);
 
-            result[i] = q.clamp(0.0, 255.0) as u8;
+            result[i] = q as u8;
         }
 
         result
@@ -544,7 +544,7 @@ pub fn scale_reduction(info: &ImageInfo, ib: &[u8], ob: &mut Vec<u8>, width: u32
         let mut result = [0; 4];
         let count = (hy as f64 - ly as f64) * (hx as f64 - lx as f64);
         for i in 0..4 {
-            result[i] = (acc[i] / count).clamp(0.0, 255.0) as u8
+            result[i] = (acc[i] / count) as u8
         }
         result
     }
@@ -590,10 +590,7 @@ pub fn grayscale(mode: GrayScaleMode) {
             GrayScaleMode::Luminance => {
                 let ib = image_buffer();
                 for pixel in ib.chunks_exact_mut(4) {
-                    let r = pixel[0];
-                    let g = pixel[1];
-                    let b = pixel[2];
-                    let gray = luminance(r, g, b);
+                    let gray = luminance(pixel);
                     pixel[0] = gray;
                     pixel[1] = gray;
                     pixel[2] = gray;
@@ -690,23 +687,26 @@ fn make_table(max_level: u8) -> [u8; 256] {
     let max_m1 = max_level - 1.0;
     for i in 0..256 {
         let q = ((max_level * i as f64) / 256.0).floor();
-        table[i] = ((255.0 / max_m1) * q).ceil().clamp(0.0, 255.0) as u8;
+        table[i] = ((255.0 / max_m1) * q).ceil() as u8;
     }
     table
 }
 
+/// Determine if the image is dark or not
 #[wasm_bindgen]
-pub fn image_is_dark(threshold: u8) -> bool {
+pub fn image_is_dark(iv: u8, threshold_bw: u8, threshold_alpha: u8) -> bool {
     let ib = image_buffer();
 
-    let levels = ib.chunks_exact(4).fold((0, 0), |lhs, rhs| {
-        if rhs[3] > 64 {
-            let l = luminance(rhs[0], rhs[1], rhs[2]) as u64;
-            (lhs.0 + l, lhs.1 + threshold as u64)
-        } else {
-            lhs
-        }
-    });
+    let levels = ib
+        .chunks_exact(4)
+        .fold((iv as u64, threshold_bw as u64), |lhs, rhs| {
+            if rhs[3] > threshold_alpha {
+                let l = luminance(rhs) as u64;
+                (lhs.0 + l, lhs.1 + threshold_bw as u64)
+            } else {
+                lhs
+            }
+        });
 
     levels.0 < levels.1
 }
@@ -719,7 +719,7 @@ pub fn make_opaque() {
     }
     info.transparency = Transparency::Opaque;
 
-    let bg_color = if image_is_dark(0xC0) {
+    let bg_color = if image_is_dark(0xFF, 0xC0, 64) {
         [0xFF; 4]
     } else {
         [0u8, 0u8, 0u8, 0xFF]
@@ -728,7 +728,7 @@ pub fn make_opaque() {
     let ib = image_buffer();
     for pixel in ib.chunks_exact_mut(4) {
         let pixel: &mut [u8; 4] = pixel.try_into().unwrap();
-        *pixel = blending(bg_color, *pixel);
+        *pixel = blend(bg_color, *pixel);
     }
 }
 
@@ -881,38 +881,37 @@ impl From<Transparency> for bool {
 }
 
 #[inline]
-pub fn luminance(r: u8, g: u8, b: u8) -> u8 {
-    let r = r as usize;
-    let g = g as usize;
-    let b = b as usize;
+pub fn luminance(rgb: &[u8]) -> u8 {
+    if rgb.len() < 3 {
+        return 0;
+    }
+    let r = rgb[0] as usize;
+    let g = rgb[1] as usize;
+    let b = rgb[2] as usize;
     ((r * 77 + g * 150 + b * 29) / 256) as u8
 }
 
-pub fn blending(lhs: [u8; 4], rhs: [u8; 4]) -> [u8; 4] {
-    const TRANSPARENT: u8 = 0;
-    const OPAQUE: u8 = u8::MAX;
-
+pub fn blend(lhs: [u8; 4], rhs: [u8; 4]) -> [u8; 4] {
     let ra = rhs[3];
-    if ra == OPAQUE {
+    if ra == u8::MAX {
         return rhs;
-    } else if ra == TRANSPARENT {
+    } else if ra == 0 {
         return lhs;
     }
 
-    let rr = rhs[0] as usize;
-    let rg = rhs[1] as usize;
-    let rb = rhs[2] as usize;
-
-    let lr = lhs[0] as usize;
-    let lg = lhs[1] as usize;
-    let lb = lhs[2] as usize;
-    let la = lhs[3] as usize;
-
     let ra = ra as usize;
-    let la = la * (256 - ra) / 256;
+    let la = (lhs[3] as usize) * (256 - ra) / 256;
     let sa = ra + la;
 
     if sa > 0 {
+        let rr = rhs[0] as usize;
+        let rg = rhs[1] as usize;
+        let rb = rhs[2] as usize;
+
+        let lr = lhs[0] as usize;
+        let lg = lhs[1] as usize;
+        let lb = lhs[2] as usize;
+
         [
             ((lr * la + rr * ra) / sa) as u8,
             ((lg * la + rg * ra) / sa) as u8,

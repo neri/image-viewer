@@ -17,6 +17,7 @@ const alert = (x: string) => new AlertDialog(x).show();
 
 class App {
 
+    private currentTitle = '';
     private baseName = 'download';
 
     onload() {
@@ -40,8 +41,7 @@ class App {
             }
         }, false);
 
-        html.addEventListener('drop', (_e) => {
-            const e = _e as DragEvent;
+        html.addEventListener('drop', (e) => {
             e.stopPropagation();
             e.preventDefault();
             if (this.isDraging) {
@@ -86,12 +86,29 @@ class App {
             repositoryButton.href = REPOSITORY_URL;
             repositoryButton.target = "_blank";
             repositoryButton.appendChild(app.makeIcon('ic_launch'));
-            repositoryButton.appendChild(document.createTextNode('Open in GitHub'));
+            repositoryButton.appendChild(document.createTextNode(' Open in GitHub'));
             element.parentElement?.replaceChild(repositoryButton, element);
         });
 
         ($('#menuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             new MainMenu().show();
+        });
+
+        ($('#titleText') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            this.beginEditMode();
+        });
+
+        ($('#titleInput') as HTMLButtonElement | null)?.addEventListener('keypress', (e) => {
+            switch (e.key) {
+                case 'Enter':
+                    e.preventDefault();
+                    this.endEditMode();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    this.cancelEditMode();
+                    break;
+            }
         });
 
         ($('#aboutMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
@@ -312,11 +329,11 @@ class App {
     }
 
     updateInfo(name: string, width: number, height: number) {
-        const titleText = $('#titleText');
+        const titleText = $('#titleText') as HTMLElement | null;
         if (titleText === null) {
             return;
         }
-        const startText = $('#startText') as HTMLDivElement;
+        const startText = $('#startText') as HTMLElement | null;
         if (startText === null) {
             return;
         }
@@ -326,12 +343,20 @@ class App {
         }
         this.baseName = baseName;
         if (width > 0 && height > 0) {
+            const titleInput = $('#titleInput') as HTMLInputElement;
+            titleInput.hidden = true;
+            titleInput.style.minWidth = '10em';
+            titleInput.style.maxWidth = '50%';
+            titleInput.style.width = `${baseName.length}em`;
+
             const title = `${baseName} (${width} x ${height})`;
             titleText.childNodes.forEach((node, key, parent) => {
                 titleText.removeChild(node)
             });
             titleText.appendChild(document.createTextNode(title));
+            titleText.style.visibility = 'visible';
             document.title = title;
+            this.currentTitle = title;
         }
         startText.style.display = 'none';
 
@@ -343,6 +368,49 @@ class App {
         CropDialog.update();
         ScaleDialog.update();
     }
+
+    beginEditMode() {
+        if (this.currentTitle === '') {
+            return;
+        }
+        const titleText = $('#titleText') as HTMLElement | null;
+        if (titleText === null) {
+            return;
+        }
+        titleText.style.visibility = 'collapse';
+
+        const titleInput = $('#titleInput') as HTMLInputElement;
+        titleInput.value = this.baseName;
+        titleInput.hidden = false;
+    }
+
+    cancelEditMode() {
+        const titleInput = $('#titleInput') as HTMLInputElement;
+        titleInput.hidden = true;
+
+        const titleText = $('#titleText') as HTMLElement | null;
+        if (titleText === null) {
+            return;
+        }
+        titleText.style.visibility = 'visible';
+    }
+
+    endEditMode() {
+        const titleInput = $('#titleInput') as HTMLInputElement;
+        const baseName = titleInput.value.trim();
+        titleInput.hidden = true;
+        if (baseName === '') {
+            return this.cancelEditMode();
+        }
+
+        const canvas = $('#mainCanvas') as HTMLCanvasElement | null;
+        if (canvas === null) {
+            return;
+        }
+
+        this.updateInfo(baseName, canvas.width, canvas.height);
+    }
+
 
     loadImage(name: string, canvas: HTMLCanvasElement, blob: ArrayBuffer) {
         if (wasm.decode(new Uint8Array(blob))) {
@@ -378,19 +446,26 @@ class App {
     }
 
     exportEncoded(type: wasm.ImageType) {
-        const data = wasm.encode(type);
-        if (!(data instanceof Uint8Array)) {
-            alert("ENCODE ERROR");
-            console.log('encode error');
-            return;
-        }
+        const waitDialog = new AlertDialog("Please wait...", "Encoding...", null, true, false);
+        waitDialog.show();
 
-        const blob = new Blob([data], { type: "application/octet-stream" });
-        const dataUrl = URL.createObjectURL(blob);
-        const tag = document.createElement('a') as HTMLAnchorElement;
-        tag.href = dataUrl;
-        tag.download = `${this.baseName}.${wasm.image_type_to_string(type)}`;
-        tag.click();
+        setTimeout(() => {
+            const data = wasm.encode(type);
+            waitDialog.dismiss();
+
+            if (!(data instanceof Uint8Array)) {
+                alert("ENCODE ERROR");
+                console.log('encode error');
+                return;
+            }
+
+            const blob = new Blob([data], { type: "application/octet-stream" });
+            const dataUrl = URL.createObjectURL(blob);
+            const tag = document.createElement('a') as HTMLAnchorElement;
+            tag.href = dataUrl;
+            tag.download = `${this.baseName}.${wasm.image_type_to_string(type)}`;
+            tag.click();
+        }, 100);
     }
 
     // exportImage(canvas: HTMLCanvasElement) {
@@ -535,7 +610,13 @@ class Dialog {
     frameElement: HTMLElement;
     bodyElement: HTMLElement;
 
-    constructor(mainId: string, title: string, icon: string | null = null, isModal: boolean = true) {
+    constructor(
+        mainId: string,
+        title: string,
+        _icon: string | null = null,
+        isModal: boolean = true,
+        closeButton: boolean = true
+    ) {
         const selector = `#${mainId}`;
         const targetElement = $(selector) as HTMLElement | null;
         if (targetElement === null) {
@@ -544,7 +625,13 @@ class Dialog {
         this.selector = selector;
         this.isModal = isModal;
 
-        if (targetElement.className !== "dialogOuter") {
+        if (targetElement.className === "dialogOuter") {
+            const frameElement = targetElement.firstElementChild as HTMLElement;
+            const bodyElement = targetElement.querySelector('.dialogBody') as HTMLElement;
+            this.outerElement = targetElement;
+            this.frameElement = frameElement;
+            this.bodyElement = bodyElement;
+        } else {
             targetElement.removeAttribute('id');
             targetElement.className = 'dialogBody';
 
@@ -565,26 +652,8 @@ class Dialog {
             });
             outerElement.appendChild(frameElement);
 
+
             const titleElement = document.createElement('div');
-            titleElement.className = 'dialogTitle';
-
-            if (icon !== null) {
-                titleElement.insertBefore(app.makeIcon(icon), null);
-            }
-
-            const titleString = document.createElement('div');
-            titleString.className = 'dialogTitleContent';
-            titleString.appendChild(document.createTextNode(title));
-            titleElement.insertBefore(titleString, null);
-
-            const closeButton = document.createElement('a');
-            closeButton.classList.add('button', 'dialogCloseButton');
-            closeButton.appendChild(document.createTextNode('\u{2715}'))
-            closeButton.addEventListener('click', () => {
-                Dialog.dismissTop()
-            })
-            titleElement.insertBefore(closeButton, null);
-
             frameElement.appendChild(titleElement);
 
             targetElement.parentNode?.replaceChild(outerElement, targetElement);
@@ -593,12 +662,28 @@ class Dialog {
             this.outerElement = outerElement;
             this.frameElement = frameElement;
             this.bodyElement = targetElement;
-        } else {
-            const frameElement = targetElement.firstElementChild as HTMLElement;
-            const bodyElement = targetElement.querySelector('.dialogBody') as HTMLElement;
-            this.outerElement = targetElement;
-            this.frameElement = frameElement;
-            this.bodyElement = bodyElement;
+        }
+
+        {
+            const titleElement = document.createElement('div');
+            titleElement.className = 'dialogTitle';
+
+            const titleString = document.createElement('div');
+            titleString.className = 'dialogTitleContent';
+            titleString.appendChild(document.createTextNode(title));
+            titleElement.insertBefore(titleString, null);
+
+            if (closeButton) {
+                const closeButton = document.createElement('a');
+                closeButton.classList.add('buttonFace', 'dialogCloseButton');
+                closeButton.appendChild(document.createTextNode('\u{2715}'))
+                closeButton.addEventListener('click', () => {
+                    Dialog.dismissTop()
+                })
+                titleElement.insertBefore(closeButton, null);
+            }
+
+            this.frameElement.replaceChild(titleElement, this.frameElement.firstChild as HTMLElement);
         }
 
         this.onResetStyle();
@@ -675,6 +760,27 @@ class Dialog {
     }
 }
 
+class AlertDialog extends Dialog {
+    constructor(
+        message: string,
+        title: string | null = null,
+        icon: string | null = "ic_error",
+        isModal: boolean = true,
+        closeButton: boolean = true
+    ) {
+        super('dialogAlert', title ?? "", icon ?? "", isModal, closeButton);
+
+        const alertMessage = ($('#alertMessage') as HTMLElement | null);
+        if (alertMessage !== null) {
+            alertMessage.innerText = message;
+        }
+    }
+
+    static dismiss() {
+        new AlertDialog("").dismiss()
+    }
+}
+
 class MainMenu extends Dialog {
     constructor() {
         super('dialogMainMenu', "", "ic_menu", false);
@@ -691,18 +797,7 @@ class MainMenu extends Dialog {
 
 class AboutDialog extends Dialog {
     constructor() {
-        super('dialogAbout', "About...", null, false);
-    }
-}
-
-class AlertDialog extends Dialog {
-    constructor(message: string, title: string | null = null, icon: string | null = "ic_error") {
-        super('dialogAlert', title ?? "", icon ?? "", false);
-
-        const alertMessage = ($('#alertMessage') as HTMLElement | null);
-        if (alertMessage !== null) {
-            alertMessage.innerText = message;
-        }
+        super('dialogAbout', "", null, false);
     }
 }
 
@@ -715,7 +810,7 @@ class CropDialog extends Dialog {
     onShow(): void {
         super.onShow();
         CropDialog.inShow = true;
-        CropDialog.isDark = wasm.image_is_dark(0x40);
+        CropDialog.isDark = wasm.image_is_dark(0xFF, 0x40, 64);
         CropDialog.update();
     }
     onClose(): void {
