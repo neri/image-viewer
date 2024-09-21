@@ -9,8 +9,8 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-js-sys = {version="0.3.69"}
-wasm-bindgen = {version="0.2.92"}
+js-sys = {version="0.3.70"}
+wasm-bindgen = {version="0.2.93"}
 
 mpic = { path = "../../mpic" }
 # mpic = {git = "https://github.com/neri/mpic"}
@@ -18,7 +18,7 @@ rapid-qoi = {version="0.6.1"}
 png = {version="0.17.13"}
 
 [dependencies.web-sys]
-version = "0.3.69"
+version = "0.3.70"
 features = [
   "ImageData",
   "CanvasRenderingContext2d",

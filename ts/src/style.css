@@ -46,27 +46,26 @@ header {
 }
 
 .button {
-    background: rgba(75%, 75%, 75%, 0.5);
-    color: #424242;
+    background: #8a8a8a;
+    color: #EEE;
     text-shadow: none;
 }
 
 .button:hover,
 .button:focus {
-    border-color: rgba(25%, 25%, 25%, 0.5);
-    color: #000;
-    background: rgba(75%, 75%, 75%, 0.75);
+    border-color: rgba(75%, 75%, 75%, 0.5);
+    color: #FFF;
 }
 
 .buttonActive {
     background: #2196F3;
-    color: #FFF;
+    color: #EEE;
     text-shadow: none;
 }
 
 .buttonActive:hover,
 .buttonActive:focus {
-    border-color: rgba(25%, 25%, 25%, 0.5);
+    border-color: rgba(75%, 75%, 75%, 0.5);
     color: #FFF;
     text-shadow: 1px 1px 3px rgba(100%, 100%, 100%, 0.125);
 }
@@ -80,13 +79,13 @@ header {
     text-shadow: none;
 }
 
-nav li .button {
+li .button {
     width: 87%;
 }
 
 li sub {
     vertical-align: baseline;
-    color: #888;
+    color: #BBB;
     font-size: 10px;
 }
 
@@ -168,9 +167,8 @@ input.scale {
     position: absolute;
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
-    background: rgba(100%, 100%, 100%, 0.75);
-    color: #424242;
-    text-shadow: 0px 0px 5px white;
+    background: rgba(16.7%, 16.7%, 16.7%, 0.5);
+    color: #CCC;
     border-radius: 8px;
     box-shadow: 0 5px 15px 1px rgba(0, 0, 0, 0.5);
     left: 50%;
@@ -194,6 +192,8 @@ input.scale {
     white-space: nowrap;
     align-items: center;
     border-bottom: #999 solid 1px;
+    color: #424242;
+    text-shadow: 0px 0px 5px white;
 }
 
 .dialogBody {
@@ -223,8 +223,8 @@ input.scale {
 .dialogCloseButton:hover,
 .dialogCloseButton:focus {
     background: transparent;
-    color: #f44336;
-    text-shadow: 0px 0px 5px #f44336;
+    color: #FFF;
+    text-shadow: 0px 0px 8px #f44336;
 }
 
 #menuButton {
@@ -247,14 +247,20 @@ input.scale {
     margin: 1em;
 }
 
-nav ul {
+ul {
     margin: 0;
     padding: 0;
 }
 
-nav li {
+li {
     list-style: none;
     margin: 0.5em 0;
+}
+
+.app_version {
+    font-style: italic;
+    text-align: center;
+    font-size: smaller;
 }
 
 .ic_blank {

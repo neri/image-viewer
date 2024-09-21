@@ -7,9 +7,12 @@
 const APP_NAME = "Online Image Tools";
 const COPYRIGHT = "Copyright (c) 2022 Nerry, ALL RIGHTS RESERVED.";
 const REPOSITORY_URL = "https://github.com/neri/image-viewer";
+const VERSION_STRING = "0.1.0";
 
 import './style.css';
 import * as wasm from '../lib/libimage';
+import { HASH } from "./hash";
+import { Dialog } from './dialog';
 
 const $ = (x: string) => document.querySelector(x);
 
@@ -89,6 +92,13 @@ class App {
             repositoryButton.appendChild(document.createTextNode(' Open in GitHub'));
             element.parentElement?.replaceChild(repositoryButton, element);
         });
+        document.querySelectorAll('.app_version').forEach((element, _key, _parent) => {
+            const appVerTag = document.createElement('div');
+            appVerTag.className = 'app_version';
+            const appVerText = document.createTextNode(`Version: ${VERSION_STRING} Hash: ${HASH}`);
+            appVerTag.appendChild(appVerText);
+            element.parentElement?.replaceChild(appVerTag, element);
+        });
 
         ($('#menuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             new MainMenu().show();
@@ -113,6 +123,13 @@ class App {
 
         ($('#aboutMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             new AboutDialog().show();
+        });
+
+        ($('#exportMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                Dialog.dismissAll();
+                new ExportDialog().show();
+            }
         });
 
         ($('#cropMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
@@ -446,7 +463,7 @@ class App {
     }
 
     exportEncoded(type: wasm.ImageType) {
-        const waitDialog = new AlertDialog("Please wait...", "Encoding...", null, true, false);
+        const waitDialog = new AlertDialog("Please wait...", "Encoding...", true, false);
         waitDialog.show();
 
         setTimeout(() => {
@@ -598,177 +615,14 @@ class App {
 
 const app = new App();
 
-class Dialog {
-
-    private static _lastIndex = 0;
-    private static _stack: Dialog[] = [];
-
-    isModal: boolean;
-    selector: string;
-
-    outerElement: HTMLElement;
-    frameElement: HTMLElement;
-    bodyElement: HTMLElement;
-
-    constructor(
-        mainId: string,
-        title: string,
-        _icon: string | null = null,
-        isModal: boolean = true,
-        closeButton: boolean = true
-    ) {
-        const selector = `#${mainId}`;
-        const targetElement = $(selector) as HTMLElement | null;
-        if (targetElement === null) {
-            throw new Error(`selector (${selector}) is not found`);
-        }
-        this.selector = selector;
-        this.isModal = isModal;
-
-        if (targetElement.className === "dialogOuter") {
-            const frameElement = targetElement.firstElementChild as HTMLElement;
-            const bodyElement = targetElement.querySelector('.dialogBody') as HTMLElement;
-            this.outerElement = targetElement;
-            this.frameElement = frameElement;
-            this.bodyElement = bodyElement;
-        } else {
-            targetElement.removeAttribute('id');
-            targetElement.className = 'dialogBody';
-
-            const outerElement = document.createElement('div');
-            outerElement.id = mainId;
-            outerElement.className = 'dialogOuter';
-            outerElement.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (!this.isModal) {
-                    Dialog.dismissTop();
-                }
-            });
-
-            const frameElement = document.createElement('div');
-            frameElement.className = 'dialogFrame';
-            frameElement.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-            outerElement.appendChild(frameElement);
-
-
-            const titleElement = document.createElement('div');
-            frameElement.appendChild(titleElement);
-
-            targetElement.parentNode?.replaceChild(outerElement, targetElement);
-            frameElement.appendChild(targetElement);
-
-            this.outerElement = outerElement;
-            this.frameElement = frameElement;
-            this.bodyElement = targetElement;
-        }
-
-        {
-            const titleElement = document.createElement('div');
-            titleElement.className = 'dialogTitle';
-
-            const titleString = document.createElement('div');
-            titleString.className = 'dialogTitleContent';
-            titleString.appendChild(document.createTextNode(title));
-            titleElement.insertBefore(titleString, null);
-
-            if (closeButton) {
-                const closeButton = document.createElement('a');
-                closeButton.classList.add('buttonFace', 'dialogCloseButton');
-                closeButton.appendChild(document.createTextNode('\u{2715}'))
-                closeButton.addEventListener('click', () => {
-                    Dialog.dismissTop()
-                })
-                titleElement.insertBefore(closeButton, null);
-            }
-
-            this.frameElement.replaceChild(titleElement, this.frameElement.firstChild as HTMLElement);
-        }
-
-        this.onResetStyle();
-    }
-
-    onResetStyle() {
-        this.frameElement.style.opacity = '0.0';
-        this.frameElement.style.transform = 'translate(-50%, -50%) scale(1.125)';
-    }
-
-    onShow() {
-        setTimeout(() => {
-            this.frameElement.style.opacity = '1.0';
-            this.frameElement.style.transform = 'translate(-50%, -50%) scale(1.0)';
-        }, 50);
-    }
-
-    onClose() { }
-
-    show() {
-        Dialog._show(this)
-    }
-    private static _show(dialog: Dialog) {
-        if (dialog.outerElement.style.display === 'block') return;
-
-        if (Dialog._stack.length == 0) {
-            Dialog._lastIndex = 100;
-        }
-        Dialog._stack.push(dialog)
-        dialog.outerElement.style.zIndex = "" + (++Dialog._lastIndex)
-        dialog.outerElement.style.display = 'block';
-        dialog.onShow();
-        setTimeout(() => {
-            dialog.outerElement.style.backgroundColor = "rgba(0, 0, 0, 0.25)";
-        }, 10);
-    }
-
-    dismiss() {
-        Dialog._dismiss(this)
-    }
-    static _dismiss(dialog: Dialog) {
-        Dialog._stack = Dialog._stack.filter(value => {
-            if (value.selector === dialog.selector) {
-                this._close(value)
-                return false;
-            } else {
-                return true;
-            }
-        })
-    }
-    private static _close(dialog: Dialog) {
-        dialog.onClose();
-        dialog.outerElement.style.backgroundColor = "transparent";
-        dialog.onResetStyle();
-        setTimeout(() => {
-            dialog.outerElement.style.display = 'none';
-        }, 300);
-    }
-
-    static dismissAll() {
-        while (Dialog._stack.length > 0) {
-            this.dismissTop()
-        }
-    }
-    static dismissTop() {
-        const top = Dialog._stack.pop();
-        if (top !== undefined) {
-            this._close(top);
-        }
-    }
-
-    childElement(selector: string): HTMLElement | null {
-        return $(`${this.selector} ${selector}`) as HTMLElement | null
-    }
-}
-
 class AlertDialog extends Dialog {
     constructor(
         message: string,
         title: string | null = null,
-        icon: string | null = "ic_error",
         isModal: boolean = true,
         closeButton: boolean = true
     ) {
-        super('dialogAlert', title ?? "", icon ?? "", isModal, closeButton);
+        super('dialogAlert', title ?? "", isModal, closeButton);
 
         const alertMessage = ($('#alertMessage') as HTMLElement | null);
         if (alertMessage !== null) {
@@ -783,7 +637,7 @@ class AlertDialog extends Dialog {
 
 class MainMenu extends Dialog {
     constructor() {
-        super('dialogMainMenu', "", "ic_menu", false);
+        super('dialogMainMenu', "", false);
     }
     onResetStyle(): void {
         this.frameElement.style.transform = 'translate(-100%, 0)';
@@ -795,9 +649,15 @@ class MainMenu extends Dialog {
     }
 }
 
+class ExportDialog extends Dialog {
+    constructor() {
+        super('dialogExport', "Export as...", false);
+    }
+}
+
 class AboutDialog extends Dialog {
     constructor() {
-        super('dialogAbout', "", null, false);
+        super('dialogAbout', "", false);
     }
 }
 
@@ -805,7 +665,7 @@ class CropDialog extends Dialog {
     private static inShow = false;
     private static isDark = false;
     constructor() {
-        super('dialogCrop', "Resize (Crop)", "ic_crop");
+        super('dialogCrop', "Resize (Crop)");
     }
     onShow(): void {
         super.onShow();
@@ -902,7 +762,7 @@ class CropDialog extends Dialog {
 class ScaleDialog extends Dialog {
     private static inShow = false;
     constructor() {
-        super('dialogScale', "Resize (Scale)", "ic_transform");
+        super('dialogScale', "Resize (Scale)");
     }
     onShow(): void {
         super.onShow();
@@ -967,7 +827,7 @@ class ScaleDialog extends Dialog {
 class ReduceDialog extends Dialog {
     private static inShow = false;
     constructor() {
-        super('dialogReduce', "Reduce Color", "ic_palette");
+        super('dialogReduce', "Reduce Color");
     }
     onShow(): void {
         super.onShow();

@@ -4,7 +4,7 @@
   "description": "Online Image Viewer",
   "main": "index.js",
   "scripts": {
-    "start": "webpack serve --open --config webpack.dev.js",
+    "start": "webpack serve --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js"
   },
   "author": "",

@@ -4,3 +4,4 @@ dist/
 temp/
 *.wasm
 ts/lib/
+ts/src/hash.ts

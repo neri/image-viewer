@@ -31,7 +31,7 @@
                     <span class="ic_folder_open">&nbsp;</span>
                     Open...
                 </a>
-                <input id="fileLocal" type="file" style="display: none;">
+                <input id="fileLocal" type="file" style="display: none;" accept="image/*, .mpic, .qoi">
             </label>
         </li>
     </ul>
@@ -55,20 +55,10 @@
             </a>
         </li>
         <li>
-            <fieldset>
-                <legend><span class="ic_cloud_download">&nbsp;</span> Export as...</legend>
-                <ul>
-                    <li>
-                        <a id="savePngButton" class="button">.PNG <sub>(lossless)</sub></a>
-                    </li>
-                    <li>
-                        <a id="saveQoiButton" class="button">.QOI <sub>(lossless)</sub></a>
-                    </li>
-                    <li>
-                        <a id="saveMpicButton" class="button">.MPIC <sub>(lossy)</sub></a>
-                    </li>
-                </ul>
-            </fieldset>
+            <a id="exportMenuButton" class="button">
+                <span class="ic_cloud_download">&nbsp;</span>
+                Export as...
+            </a>
         </li>
     </ul>
     <ul>
@@ -80,6 +70,20 @@
         </li>
     </ul>
 </nav>
+
+<div id="dialogExport" class="dialogSeed">
+    <ul>
+        <li>
+            <a id="savePngButton" class="button">.PNG <sub>(lossless)</sub></a>
+        </li>
+        <li>
+            <a id="saveQoiButton" class="button">.QOI <sub>(lossless)</sub></a>
+        </li>
+        <li>
+            <a id="saveMpicButton" class="button">.MPIC <sub>(lossy)</sub></a>
+        </li>
+    </ul>
+</div>
 
 <div id="dialogCrop" class="dialogSeed">
     <fieldset>
@@ -202,6 +206,7 @@
 <div id="dialogAbout" class="dialogSeed">
     <h1><span class="app_name">&nbsp;</span></h1>
     <p><span class="copyright"></span></p>
+    <p><span class="app_version"></span></p>
     <hr>
     <span class="repository_button"></span>
 </div>
