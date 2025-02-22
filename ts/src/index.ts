@@ -193,7 +193,10 @@ class App {
 
         ($('#scaleExecButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.performScale();
+                const width = parseInt(($('#scaleWidth') as HTMLInputElement).value);
+                const height = parseInt(($('#scaleHeight') as HTMLInputElement).value);
+                const scaleMode = parseInt(($('#scaleMode') as HTMLSelectElement).value);
+                this.performScale(width, height, scaleMode);
             }
         });
 
@@ -275,6 +278,40 @@ class App {
             this.snapshotRestore();
         });
 
+        ($('#pixelMenuButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                this.snapshotSave();
+                Dialog.dismissAll();
+                new PixelDialog().show();
+            }
+        });
+
+        ($('#pixelPsdExecButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const max_color_diff = parseInt(($('#pixelMaxError') as HTMLInputElement).value);
+                this.performPixelScaleDetect(max_color_diff);
+            }
+        });
+
+        ($('#pixelPsdApplyButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                const inputElement = $('#pixelScale') as HTMLInputElement;
+                const scale = parseInt(inputElement.value);
+                if (scale > 0) {
+                    const info = this.getInfo();
+                    const max_color_diff = parseInt(($('#pixelMaxError') as HTMLInputElement).value);
+                    const scale_mode = (max_color_diff > 0) ? wasm.ScaleMode.Bilinear : wasm.ScaleMode.Nearest;
+                    this.performScale(info.width / scale, info.height / scale, scale_mode);
+                    inputElement.value = '0';
+                }
+            }
+        });
+
+        ($('#pixelResetButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
+            if (this.validCanvas() !== null) {
+                PixelDialog.reset();
+            }
+        });
 
         ($('#savePngButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             const canvas = this.validCanvas();
@@ -550,19 +587,16 @@ class App {
         }
     }
 
-    performScale() {
+    performScale(width: number, height: number, scaleMode: wasm.ScaleMode) {
         const canvas = this.validCanvas();
         if (canvas === null) {
             return;
         }
-        const width = parseInt(($('#scaleWidth') as HTMLInputElement).value);
-        const height = parseInt(($('#scaleHeight') as HTMLInputElement).value);
         const info = this.getInfo();
         if (width > 0 && height > 0) { } else {
             alert('Invalid size');
             return;
         }
-        const scaleMode = parseInt(($('#scaleMode') as HTMLSelectElement).value);
         if (wasm.scale(width, height, scaleMode)) {
             this.reflectLibToCanvas();
         } else {
@@ -595,6 +629,18 @@ class App {
         }
         wasm.makeOpaque();
         this.reflectLibToCanvas();
+    }
+
+    performPixelScaleDetect(max_color_diff: number) {
+        const canvas = this.validCanvas();
+        if (canvas === null) { return; }
+        const scale = wasm.get_pixel_scale(max_color_diff);
+        if (scale > 1) {
+            ($('#pixelScale') as HTMLInputElement).value = scale.toString();
+            PixelDialog.updateHandle();
+        } else {
+            alert('Failed to detect scale');
+        }
     }
 
     snapshotSave() {
@@ -839,6 +885,58 @@ class ReduceDialog extends Dialog {
         ReduceDialog.inShow = false;
     }
     static update() {
+    }
+}
+
+class PixelDialog extends Dialog {
+    private static inShow = false;
+    constructor() {
+        super('dialogPixel', "Pixel Scale Detection");
+    }
+    onShow(): void {
+        super.onShow();
+        PixelDialog.inShow = true;
+        PixelDialog.update();
+    }
+    onClose(): void {
+        super.onClose();
+        PixelDialog.inShow = false;
+        PixelDialog.updateHandle();
+    }
+    static update() {
+        this.reset();
+    }
+    static reset() {
+        ($('#pixelScale') as HTMLInputElement).value = '0';
+        app.snapshotRestore();
+        PixelDialog.updateHandle();
+    }
+    static updateHandle() {
+        const scale = parseInt(($('#pixelScale') as HTMLInputElement).value);
+        const handleCanvas = $('#handleCanvas') as HTMLCanvasElement | null;
+        if (handleCanvas === null) {
+            return;
+        }
+        const info = app.getInfo();
+        handleCanvas.width = info.width + 2;
+        handleCanvas.height = info.height + 2;
+        const ctx = handleCanvas.getContext('2d');
+        if (ctx === null) {
+            return
+        }
+        if (PixelDialog.inShow && scale > 1) {
+            ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
+
+            ctx.fillStyle = "rgba(0.5, 0.5, 0.5, 0.25)";
+            for (let y = 0; y <= info.height; y += scale) {
+                ctx.fillRect(0, y, info.width + 1, 1);
+            }
+            for (let x = 0; x <= info.width; x += scale) {
+                ctx.fillRect(x, 0, 1, info.height + 1);
+            }
+        } else {
+            ctx.clearRect(0, 0, handleCanvas.width, handleCanvas.height);
+        }
     }
 }
 

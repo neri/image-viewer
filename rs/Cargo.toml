@@ -1,5 +1,5 @@
 [package]
-edition = "2021"
+edition = "2024"
 name = "libimage"
 version = "0.1.0"
 
@@ -9,16 +9,18 @@ version = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-js-sys = {version="0.3.70"}
-wasm-bindgen = {version="0.2.93"}
+js-sys = {version="0.3.77"}
+wasm-bindgen = {version="0.2.100"}
 
-mpic = { path = "../../mpic" }
-# mpic = {git = "https://github.com/neri/mpic"}
+# mpic = { path = "../../mpic" }
+mpic = {git = "https://github.com/neri/mpic"}
 rapid-qoi = {version="0.6.1"}
-png = {version="0.17.13"}
+png = {version="0.17.16"}
+pixel_scale_detector = { git = "https://github.com/neri/pixel-scale-detector.git" }
+# pixel_scale_detector = {path = "../../pixel-scale-detector"}
 
 [dependencies.web-sys]
-version = "0.3.70"
+version = "0.3.77"
 features = [
   "ImageData",
   "CanvasRenderingContext2d",

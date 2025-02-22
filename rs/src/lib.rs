@@ -9,8 +9,9 @@ use core::{
     ops::DerefMut,
 };
 use mpic;
+use pixel_scale_detector::get_pixel_scale_from_bytes;
 use rapid_qoi::{Colors, Qoi};
-use wasm_bindgen::{prelude::*, Clamped};
+use wasm_bindgen::{Clamped, prelude::*};
 use web_sys::{CanvasRenderingContext2d, ImageData};
 
 static mut IMAGE_INFO: UnsafeCell<ImageInfo> = UnsafeCell::new(ImageInfo::empty());
@@ -21,22 +22,22 @@ static mut SNAPSHOT_IMAGE: RefCell<Vec<u8>> = RefCell::new(Vec::new());
 
 #[inline]
 fn image_info<'a>() -> &'a mut ImageInfo {
-    unsafe { IMAGE_INFO.get_mut() }
+    unsafe { (&mut *(&raw mut IMAGE_INFO)).get_mut() }
 }
 
 #[inline]
 fn image_buffer<'a>() -> &'a mut Vec<u8> {
-    unsafe { IMAGE_BUFFER.get_mut() }
+    unsafe { (&mut *(&raw mut IMAGE_BUFFER)).get_mut() }
 }
 
 #[inline]
 fn snapshot_info<'a>() -> impl DerefMut<Target = Option<ImageInfo>> + 'a {
-    unsafe { SNAPSHOT_INFO.borrow_mut() }
+    unsafe { (&*(&raw const SNAPSHOT_INFO)).borrow_mut() }
 }
 
 #[inline]
 fn snapshot_image_buffer<'a>() -> impl DerefMut<Target = Vec<u8>> + 'a {
-    unsafe { SNAPSHOT_IMAGE.borrow_mut() }
+    unsafe { (&*(&raw const SNAPSHOT_IMAGE)).borrow_mut() }
 }
 
 #[wasm_bindgen]
@@ -296,7 +297,7 @@ pub fn crop(x: u32, y: u32, width: u32, height: u32) -> bool {
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ScaleMode {
-    NearstNeighbor,
+    Nearest,
     Bilinear,
     Bicubic,
 }
@@ -322,7 +323,7 @@ pub fn scale(width: u32, height: u32, mode: ScaleMode) -> bool {
 
     let ib = image_buffer();
     match mode {
-        ScaleMode::NearstNeighbor => scale_nn(info, &ib, &mut ob, width, height),
+        ScaleMode::Nearest => scale_nn(info, &ib, &mut ob, width, height),
         ScaleMode::Bilinear => {
             if info.width > width && info.height > height {
                 scale_reduction(info, &ib, &mut ob, width, height)
@@ -741,6 +742,12 @@ pub enum GrayScaleMode {
 }
 
 #[wasm_bindgen]
+pub fn get_pixel_scale(max_color_diff: u8) -> u32 {
+    let info = image_info();
+    get_pixel_scale_from_bytes(&image_buffer(), info.width, info.height, max_color_diff)
+}
+
+#[wasm_bindgen]
 pub fn snapshot_clear() {
     snapshot_info().take();
 
@@ -863,11 +870,7 @@ impl Default for Transparency {
 
 impl From<bool> for Transparency {
     fn from(val: bool) -> Self {
-        if val {
-            Self::Translucent
-        } else {
-            Self::Opaque
-        }
+        if val { Self::Translucent } else { Self::Opaque }
     }
 }
 

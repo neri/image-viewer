@@ -55,6 +55,12 @@
             </a>
         </li>
         <li>
+            <a id="pixelMenuButton" class="button">
+                <span class="ic_border_all">&nbsp;</span>
+                Pixel Scale Detect...
+            </a>
+        </li>
+        <li>
             <a id="exportMenuButton" class="button">
                 <span class="ic_cloud_download">&nbsp;</span>
                 Export as...
@@ -121,7 +127,7 @@
     </fieldset>
     <hr>
     <a class="buttonActive" id="cropExecButton">Crop</a>
-    <a class="button" id="cropResetButton">Reset Crop</a>
+    <a class="buttonDestructive" id="cropResetButton">Reset Crop</a>
 </div>
 
 <div id="dialogScale" class="dialogSeed">
@@ -163,7 +169,7 @@
     </fieldset>
     <hr>
     <a class="buttonActive" id="scaleExecButton">Scale</a>
-    <a class="button" id="scaleResetButton">Reset Scale</a>
+    <a class="buttonDestructive" id="scaleResetButton">Reset Scale</a>
 </div>
 
 <div id="dialogReduce" class="dialogSeed">
@@ -172,7 +178,7 @@
         <legend>Gray Scale</legend>
         <a class="buttonActive" id="grayLuminanceButton">Luminance</a>
         <a class="buttonActive" id="grayBrightnessButton">Brightness</a>
-        <a class="buttonActive" id="grayAverageButton">Average</a><br>
+        <a class="buttonActive" id="grayAverageButton">RGB Average</a><br>
     </fieldset>
 
     <fieldset>
@@ -200,7 +206,28 @@
     <a class="buttonActive" id="makeOpaqueButton">Make the background Opaque</a><br>
 
     <hr>
-    <a class="button" id="reduceResetButton">Reset Color</a>
+    <a class="buttonDestructive" id="reduceResetButton">Reset Color</a>
+</div>
+
+<div id="dialogPixel" class="dialogSeed">
+    <fieldset>
+        <legend>Pixel Scale Detection</legend>
+        <label>
+            Max Error:
+            <input id="pixelMaxError" type="number" inputmode="numeric" class="scale" value="0" step="1" min="0" max="128">
+        </label>
+        <a class="buttonActive" id="pixelPsdExecButton">Detect</a>
+    </fieldset>
+    <fieldset>
+        <legend>Scale</legend>
+        <label>
+            Preferred Scale:
+            <input id="pixelScale" type="number" inputmode="numeric" class="scale" value="0" step="1" min="0">
+            <a class="buttonActive" id="pixelPsdApplyButton">Reduce</a>
+        </label>
+    </fieldset>
+    <hr>
+    <a class="buttonDestructive" id="pixelResetButton">Reset</a>
 </div>
 
 <div id="dialogAbout" class="dialogSeed">

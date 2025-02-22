@@ -32,6 +32,7 @@ header {
 
 .button,
 .buttonActive,
+.buttonDestructive,
 .buttonFace {
     display: inline-block;
     margin: 4px 2px;
@@ -65,6 +66,19 @@ header {
 
 .buttonActive:hover,
 .buttonActive:focus {
+    border-color: rgba(75%, 75%, 75%, 0.5);
+    color: #FFF;
+    text-shadow: 1px 1px 3px rgba(100%, 100%, 100%, 0.125);
+}
+
+.buttonDestructive {
+    background: #f44336;
+    color: #EEE;
+    text-shadow: none;
+}
+
+.buttonDestructive:hover,
+.buttonDestructive:focus {
     border-color: rgba(75%, 75%, 75%, 0.5);
     color: #FFF;
     text-shadow: 1px 1px 3px rgba(100%, 100%, 100%, 0.125);
@@ -357,5 +371,15 @@ li {
     vertical-align: middle;
     padding: 0;
     background: image-set(url('../../ext/material-design-icons/ic_transform_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_transform_black_36dp.png') 2x) no-repeat;
+    background-size: 18px 18px;
+}
+
+.ic_border_all {
+    display: inline-block;
+    min-width: 18px;
+    min-height: 18px;
+    vertical-align: middle;
+    padding: 0;
+    background: image-set(url('../../ext/material-design-icons/ic_border_all_black_18dp.png') 1x, url('../../ext/material-design-icons/ic_border_all_black_36dp.png') 2x) no-repeat;
     background-size: 18px 18px;
 }
