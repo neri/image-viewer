@@ -10,7 +10,7 @@ const REPOSITORY_URL = "https://github.com/neri/image-viewer";
 const VERSION_STRING = "0.1.0";
 
 import './style.css';
-import * as wasm from '../lib/libimage';
+import * as libimage from '../lib/libimage';
 import { HASH } from "./hash";
 import { Dialog } from './dialog';
 
@@ -222,19 +222,19 @@ class App {
 
         ($('#grayAverageButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.performGrayscale(wasm.GrayScaleMode.Average);
+                this.performGrayscale(libimage.GrayScaleMode.Average);
             }
         });
 
         ($('#grayBrightnessButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.performGrayscale(wasm.GrayScaleMode.Brightness);
+                this.performGrayscale(libimage.GrayScaleMode.Brightness);
             }
         });
 
         ($('#grayLuminanceButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.performGrayscale(wasm.GrayScaleMode.Luminance);
+                this.performGrayscale(libimage.GrayScaleMode.Luminance);
             }
         });
 
@@ -300,7 +300,7 @@ class App {
                 if (scale > 0) {
                     const info = this.getInfo();
                     const max_color_diff = parseInt(($('#pixelMaxError') as HTMLInputElement).value);
-                    const scale_mode = (max_color_diff > 0) ? wasm.ScaleMode.Bilinear : wasm.ScaleMode.Nearest;
+                    const scale_mode = (max_color_diff > 0) ? libimage.ScaleMode.Bilinear : libimage.ScaleMode.Nearest;
                     this.performScale(info.width / scale, info.height / scale, scale_mode);
                     inputElement.value = '0';
                 }
@@ -317,19 +317,19 @@ class App {
             const canvas = this.validCanvas();
             if (canvas !== null) {
                 // this.exportImage(canvas);
-                this.exportEncoded(wasm.ImageType.Png);
+                this.exportEncoded(libimage.ImageType.Png);
             }
         });
 
         ($('#saveQoiButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.exportEncoded(wasm.ImageType.Qoi);
+                this.exportEncoded(libimage.ImageType.Qoi);
             }
         });
 
         ($('#saveMpicButton') as HTMLButtonElement | null)?.addEventListener('click', () => {
             if (this.validCanvas() !== null) {
-                this.exportEncoded(wasm.ImageType.Mpic);
+                this.exportEncoded(libimage.ImageType.Mpic);
             }
         });
 
@@ -467,15 +467,15 @@ class App {
 
 
     loadImage(name: string, canvas: HTMLCanvasElement, blob: ArrayBuffer) {
-        if (wasm.decode(new Uint8Array(blob))) {
-            const width = wasm.image_width();
-            const height = wasm.image_height();
-            console.log(`Loaded ${name} via WASM (${width} x ${height}) has_alpha: ${wasm.image_has_alpha()}`);
+        if (libimage.decode(new Uint8Array(blob))) {
+            const width = libimage.image_width();
+            const height = libimage.image_height();
+            console.log(`Loaded ${name} via WASM (${width} x ${height}) has_alpha: ${libimage.image_has_alpha()}`);
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             if (ctx !== null) {
-                wasm.draw_to_canvas(ctx);
+                libimage.draw_to_canvas(ctx);
             }
             this.updateInfo(name, width, height);
             Dialog.dismissAll();
@@ -499,12 +499,12 @@ class App {
         }
     }
 
-    exportEncoded(type: wasm.ImageType) {
+    exportEncoded(type: libimage.ImageType) {
         const waitDialog = new AlertDialog("Please wait...", "Encoding...", true, false);
         waitDialog.show();
 
         setTimeout(() => {
-            const data = wasm.encode(type);
+            const data = libimage.encode(type);
             waitDialog.dismiss();
 
             if (!(data instanceof Uint8Array)) {
@@ -517,7 +517,7 @@ class App {
             const dataUrl = URL.createObjectURL(blob);
             const tag = document.createElement('a') as HTMLAnchorElement;
             tag.href = dataUrl;
-            tag.download = `${this.baseName}.${wasm.image_type_to_string(type)}`;
+            tag.download = `${this.baseName}.${libimage.image_type_to_string(type)}`;
             tag.click();
         }, 100);
     }
@@ -546,7 +546,7 @@ class App {
             return;
         }
         const imgData = ctx.getImageData(0, 0, width, height);
-        wasm.set_image_buffer(new Uint8Array(imgData.data), width, height);
+        libimage.set_image_buffer(new Uint8Array(imgData.data), width, height);
     }
 
     reflectLibToCanvas() {
@@ -554,13 +554,13 @@ class App {
         if (canvas === null) {
             return;
         }
-        const width = wasm.image_width();
-        const height = wasm.image_height();
+        const width = libimage.image_width();
+        const height = libimage.image_height();
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (ctx !== null) {
-            wasm.draw_to_canvas(ctx);
+            libimage.draw_to_canvas(ctx);
         }
         this.updateInfo(this.baseName, width, height);
     }
@@ -580,14 +580,14 @@ class App {
             alert('Out of Bounds');
             return;
         }
-        if (wasm.crop(x, y, width, height)) {
+        if (libimage.crop(x, y, width, height)) {
             this.reflectLibToCanvas();
         } else {
             alert('Crop failed');
         }
     }
 
-    performScale(width: number, height: number, scaleMode: wasm.ScaleMode) {
+    performScale(width: number, height: number, scaleMode: libimage.ScaleMode) {
         const canvas = this.validCanvas();
         if (canvas === null) {
             return;
@@ -597,19 +597,19 @@ class App {
             alert('Invalid size');
             return;
         }
-        if (wasm.scale(width, height, scaleMode)) {
+        if (libimage.scale(width, height, scaleMode)) {
             this.reflectLibToCanvas();
         } else {
             alert('Scale failed');
         }
     }
 
-    performGrayscale(mode: wasm.GrayScaleMode) {
+    performGrayscale(mode: libimage.GrayScaleMode) {
         const canvas = this.validCanvas();
         if (canvas === null) {
             return;
         }
-        wasm.grayscale(mode);
+        libimage.grayscale(mode);
         this.reflectLibToCanvas();
     }
 
@@ -618,7 +618,7 @@ class App {
         if (canvas === null) {
             return;
         }
-        wasm.posterize(fsd, red, green, blue);
+        libimage.posterize(fsd, red, green, blue);
         this.reflectLibToCanvas();
     }
 
@@ -627,14 +627,14 @@ class App {
         if (canvas === null) {
             return;
         }
-        wasm.makeOpaque();
+        libimage.makeOpaque();
         this.reflectLibToCanvas();
     }
 
     performPixelScaleDetect(max_color_diff: number) {
         const canvas = this.validCanvas();
         if (canvas === null) { return; }
-        const scale = wasm.get_pixel_scale(max_color_diff);
+        const scale = libimage.get_pixel_scale(max_color_diff);
         if (scale > 1) {
             ($('#pixelScale') as HTMLInputElement).value = scale.toString();
             PixelDialog.updateHandle();
@@ -644,10 +644,10 @@ class App {
     }
 
     snapshotSave() {
-        wasm.snapshot_save();
+        libimage.snapshot_save();
     }
     snapshotRestore() {
-        wasm.snapshot_restore();
+        libimage.snapshot_restore();
         this.reflectLibToCanvas();
     }
 
@@ -716,7 +716,7 @@ class CropDialog extends Dialog {
     onShow(): void {
         super.onShow();
         CropDialog.inShow = true;
-        CropDialog.isDark = wasm.image_is_dark(0xFF, 0x40, 64);
+        CropDialog.isDark = libimage.image_is_dark(0xFF, 0x40, 64);
         CropDialog.update();
     }
     onClose(): void {
