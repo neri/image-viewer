@@ -10,6 +10,7 @@ use core::{
 };
 use mpic;
 use pixel_scale_detector::get_pixel_scale_from_bytes;
+use pngss::DeflateEncoder;
 use rapid_qoi::{Colors, Qoi};
 use wasm_bindgen::{Clamped, prelude::*};
 use web_sys::{CanvasRenderingContext2d, ImageData};
@@ -219,15 +220,15 @@ pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
                         buffer.push(rgba[1]);
                         buffer.push(rgba[2]);
                     }
-                    (png::ColorType::Rgb, &buffer)
+                    (pngss::ImageType::RGB, &buffer)
                 }
-                (false, true) => (png::ColorType::Rgba, &*ib),
+                (false, true) => (pngss::ImageType::RGBA, &*ib),
                 (true, false) => {
                     buffer.reserve(info.number_of_pixels());
                     for rgba in ib.chunks_exact(4) {
                         buffer.push(rgba[0]);
                     }
-                    (png::ColorType::Grayscale, &buffer)
+                    (pngss::ImageType::Grayscale, &buffer)
                 }
                 (true, true) => {
                     buffer.reserve(info.number_of_pixels() * 2);
@@ -235,21 +236,29 @@ pub fn encode(image_type: ImageType) -> Option<Vec<u8>> {
                         buffer.push(rgba[0]);
                         buffer.push(rgba[3]);
                     }
-                    (png::ColorType::GrayscaleAlpha, &buffer)
+                    (pngss::ImageType::GrayscaleAlpha, &buffer)
                 }
             };
 
-            let mut ob = Vec::new();
-            let mut encoder = png::Encoder::new(&mut ob, info.width, info.height);
-            encoder.set_depth(png::BitDepth::Eight);
-            encoder.set_color(color_type);
-            encoder.set_compression(png::Compression::Best);
-            let mut writer = encoder.write_header().ok()?;
-            writer.write_image_data(&ib).ok()?;
-            writer.finish().ok()?;
+            let ob = pngss::CustomPngEncoder::<CustomDeflateEncoder>::encode(
+                &pngss::ImageData::new(info.width, info.height, color_type, &[], &ib),
+                pngss::CompressionLevel::Best,
+            )
+            .ok()?;
 
             Some(ob)
         }
+    }
+}
+
+pub struct CustomDeflateEncoder;
+
+impl DeflateEncoder for CustomDeflateEncoder {
+    fn deflate(
+        input: &[u8],
+        _level: pngss::CompressionLevel,
+    ) -> Result<Vec<u8>, pngss::EncodeError> {
+        Ok(miniz_oxide::deflate::compress_to_vec_zlib(input, 10))
     }
 }
 

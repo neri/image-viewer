@@ -12,12 +12,15 @@ crate-type = ["cdylib"]
 js-sys = { version = "0.3" }
 wasm-bindgen = { version = "0.2" }
 
+rapid-qoi = { version = "0.6" }
+miniz_oxide = { version = "0.8" }
+
 # mpic = { path = "../../mpic" }
 mpic = { git = "https://github.com/neri/mpic"}
-rapid-qoi = { version = "0.6" }
-png = { version = "0.17" }
-pixel_scale_detector = { git = "https://github.com/neri/pixel-scale-detector.git" }
 # pixel_scale_detector = {path = "../../pixel-scale-detector"}
+pixel_scale_detector = { git = "https://github.com/neri/pixel-scale-detector.git" }
+# pngss = { path = "../../pngss" }
+pngss = { git = "https://github.com/neri/pngss.git", rev = "d56b657cd30f0e734d4b8da92056cc693cd00207" }
 
 [dependencies.web-sys]
 version = "0.3"
